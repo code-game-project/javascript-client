@@ -1,6 +1,6 @@
 {
-	"name": "javascript-browser",
-	"version": "1.0.0",
+	"name": "@code-game-project/javascript-client",
+	"version": "1.0.1",
 	"description": "",
 	"main": "lib/code-game-client.js",
 	"directories": {
@@ -13,14 +13,14 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/code-game-project/javascript-browser.git"
+		"url": "git+https://github.com/code-game-project/javascript-client.git"
 	},
 	"author": "Maxwell Matthis",
 	"license": "ISC",
 	"bugs": {
-		"url": "https://github.com/code-game-project/javascript-browser/issues"
+		"url": "https://github.com/code-game-project/javascript-client/issues"
 	},
-	"homepage": "https://github.com/code-game-project/javascript-browser#readme",
+	"homepage": "https://github.com/code-game-project/javascript-client#readme",
 	"devDependencies": {
 		"@types/consola": "^2.2.5",
 		"@types/node": "^14.14.31",
