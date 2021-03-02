@@ -1,0 +1,32 @@
+{
+	"name": "javascript-browser",
+	"version": "1.0.0",
+	"description": "",
+	"main": "lib/code-game-client.js",
+	"directories": {
+		"lib": "lib"
+	},
+	"scripts": {
+		"start": "echo \"Error: This is not meant to be run. Please import it to your own program.\" && exit 1",
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "tsc"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/code-game-project/javascript-browser.git"
+	},
+	"author": "Maxwell Matthis",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/code-game-project/javascript-browser/issues"
+	},
+	"homepage": "https://github.com/code-game-project/javascript-browser#readme",
+	"devDependencies": {
+		"@types/consola": "^2.2.5",
+		"@types/node": "^14.14.31",
+		"typescript": "^4.2.2"
+	},
+	"dependencies": {
+		"consola": "^2.15.3"
+	}
+}
