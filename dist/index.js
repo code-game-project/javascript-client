@@ -50,5 +50,5 @@ const CodeGameSocket = class CodeGameSocket {
     }
 };
 if (IS_NODE)
-    exports.CodeGameSocket = CodeGameSocket;
+    exports = CodeGameSocket;
 //# sourceMappingURL=index.js.map

@@ -65,4 +65,4 @@ const CodeGameSocket = class CodeGameSocket {
 	}
 };
 
-if (IS_NODE) exports.CodeGameSocket = CodeGameSocket;
+if (IS_NODE) exports = CodeGameSocket;
