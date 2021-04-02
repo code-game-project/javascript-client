@@ -1,6 +1,6 @@
 {
 	"name": "@code-game-project/javascript-client",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"description": "",
 	"main": "dist/index.js",
 	"directories": {
@@ -17,7 +17,7 @@
 		"url": "git+https://github.com/code-game-project/javascript-client.git"
 	},
 	"author": "Maxwell Matthis",
-	"license": "ISC",
+	"license": "MIT",
 	"bugs": {
 		"url": "https://github.com/code-game-project/javascript-client/issues"
 	},

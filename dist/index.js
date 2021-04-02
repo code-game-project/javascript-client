@@ -61,8 +61,8 @@ const CodeGameSocket = class CodeGameSocket {
     }
 };
 if (IS_NODE)
-    module.exports = CodeGameSocket;
-// @ts-ignore
+    exports.CodeGameSocket = CodeGameSocket;
+//@ts-ignore
 else
     window.CodeGameSocket = CodeGameSocket;
 //# sourceMappingURL=index.js.map
