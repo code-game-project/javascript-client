@@ -16,20 +16,31 @@ const CodeGameSocket = class CodeGameSocket {
         this.error = IS_NODE
             ? this.consola.info
             : (obj) => console.error(obj.message);
-        this.verbose = options.verbose;
-        this.apiToken = options.token;
+        this.verbose = options.verbose || false;
+        if (typeof options.token !== 'string') {
+            this.error({
+                message: 'Property `token: string` is undefined. Please specify your API token.',
+                badge: true,
+            });
+        }
+        if (typeof options.wsURL !== 'string') {
+            this.error({
+                message: 'Property `wsURL: string` is undefined. Please specify your WebSocket endpoint URL.',
+                badge: true,
+            });
+        }
         this.socket = new this.WebSocket(options.wsURL);
         this.socket.addEventListener('open', () => {
             this.success({ message: 'Connected', badge: true });
-            this.emit({ token: this.apiToken, data: '{data: "lol"}' });
+            this.emit('auth', { token: options.token });
         });
         this.socket.addEventListener('close', () => {
             this.warn({ message: 'Connection closed', badge: true });
         });
     }
-    emit(obj) {
+    emit(event, obj) {
         try {
-            this.socket.send(JSON.stringify(obj));
+            this.socket.send(JSON.stringify(Object.assign({ event: event }, obj)));
         }
         catch (err) {
             this.error(err);
@@ -50,5 +61,8 @@ const CodeGameSocket = class CodeGameSocket {
     }
 };
 if (IS_NODE)
-    exports = CodeGameSocket;
+    module.exports = CodeGameSocket;
+// @ts-ignore
+else
+    window.CodeGameSocket = CodeGameSocket;
 //# sourceMappingURL=index.js.map
