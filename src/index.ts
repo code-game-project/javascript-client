@@ -2,9 +2,9 @@ interface GenericObject {
 	[id: string]: string | boolean | number;
 }
 interface CodeGameSocketOptions {
+	verbose: boolean;
 	token: string;
 	wsURL: string;
-	verbose: boolean;
 }
 
 const IS_NODE = typeof window === 'undefined';
@@ -12,7 +12,6 @@ const IS_NODE = typeof window === 'undefined';
 const CodeGameSocket = class CodeGameSocket {
 	private verbose: boolean;
 	private socket: WebSocket;
-	private apiToken: string;
 	private readonly WebSocket = IS_NODE ? require('ws') : window.WebSocket;
 	private readonly consola = IS_NODE ? require('consola') : undefined;
 	private readonly success = IS_NODE
@@ -29,25 +28,37 @@ const CodeGameSocket = class CodeGameSocket {
 		: (obj: GenericObject) => console.error(obj.message);
 
 	public constructor(options: CodeGameSocketOptions) {
-		this.verbose = options.verbose;
-		this.apiToken = options.token;
+		this.verbose = options.verbose || false;
+		if (typeof options.token !== 'string') {
+			this.error({
+				message:
+					'Property `token: string` is undefined. Please specify your API token.',
+				badge: true,
+			});
+		}
+		if (typeof options.wsURL !== 'string') {
+			this.error({
+				message:
+					'Property `wsURL: string` is undefined. Please specify your WebSocket endpoint URL.',
+				badge: true,
+			});
+		}
 		this.socket = new this.WebSocket(options.wsURL);
 		this.socket.addEventListener('open', () => {
 			this.success({ message: 'Connected', badge: true });
-			this.emit({ token: this.apiToken, data: '{data: "lol"}' });
+			this.emit('auth', { token: options.token });
 		});
 		this.socket.addEventListener('close', () => {
 			this.warn({ message: 'Connection closed', badge: true });
 		});
 	}
 
-	public emit(obj: GenericObject): void {
+	public emit(event: string, obj: GenericObject): void {
 		try {
-			this.socket.send(JSON.stringify(obj));
+			this.socket.send(JSON.stringify(Object.assign({ event: event }, obj)));
 		} catch (err) {
 			this.error(err);
 		}
-
 		if (this.verbose)
 			this.info({ message: `emit: ${JSON.stringify(obj)}`, badge: true });
 	}
@@ -65,4 +76,6 @@ const CodeGameSocket = class CodeGameSocket {
 	}
 };
 
-if (IS_NODE) exports = CodeGameSocket;
+if (IS_NODE) module.exports = CodeGameSocket;
+// @ts-ignore
+else window.CodeGameSocket = CodeGameSocket;
