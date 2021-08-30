@@ -1,15 +1,18 @@
 {
 	"name": "@code-game-project/javascript-client",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"description": "",
 	"main": "dist/index.js",
 	"directories": {
 		"lib": "lib"
 	},
 	"scripts": {
-		"start": "echo \"Error: This is not meant to be run alone. Please import it to your own program.\" && exit 1",
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "tsc",
+		"start": "echo \"Error: This is not meant to be run on its own. Please import it to your own program.\" && exit 1",
+		"test": "npm run node-js-test && npm run node-ts-test && npm run browser-test",
+		"node-js-test": "node tests/node.js",
+		"node-ts-test": "ts-node tests/node.ts",
+		"browser-test": "serve . -p 8880",
+		"build": "tsc --project tsconfig.json && tsc --project tsconfig.browser.json",
 		"prepare": "npm run build"
 	},
 	"repository": {
@@ -24,11 +27,13 @@
 	"homepage": "https://github.com/code-game-project/javascript-client#readme",
 	"devDependencies": {
 		"@types/consola": "^2.2.5",
-		"@types/node": "^14.14.37",
+		"@types/node": "^14.17.12",
+		"serve": "^12.0.0",
+		"ts-node": "^10.2.1",
 		"typescript": "^4.2.2"
 	},
 	"dependencies": {
 		"consola": "^2.15.3",
-		"ws": "^7.4.4"
+		"ws": "^7.4.6"
 	}
 }

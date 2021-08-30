@@ -1,6 +1,6 @@
 # JavaScript-Client
 
-This is the JavaScript Client for Code Game. It works in Nodejs and most Browsers.
+This is the JavaScript Client for Code Game. It works in Node.js and most Browsers.
 
 ## Usage
 
@@ -8,41 +8,60 @@ This is the JavaScript Client for Code Game. It works in Nodejs and most Browser
 
 ```javascript
 // import the `CodeGameSocket` class into your module
-const { CodeGameSocket } = require('@code-game-project/javascript-client');
+const { CodeGameSocket } = require('@code-game-project/javascript-client');
 
 // create a new instance
 const socket = new CodeGameSocket({
+	username: 'your-username',
 	token: 'your-api-token',
-	wsURL: 'ws://ws1.code-game.example.com:8081/',
+	wsURL: 'http://ws1.code-game.example.com/some-game',
 	verbose: true,
+});
+
+// wait until connected
+socket.on('ready', () => {
+	// add your code here
 });
 ```
 
 ### Nodejs / TypeScript
 
-```javascript
+```typescript
 // import the `CodeGameSocket` class into your module
-import { CodeGameSocket } from '@code-game-project/javascript-client';
+import { CodeGameSocket } from '@code-game-project/javascript-client';
 
 // create a new instance
 const socket = new CodeGameSocket({
+	username: 'your-username',
 	token: 'your-api-token',
-	wsURL: 'ws://ws1.code-game.example.com:8081/',
+	wsURL: 'http://ws1.code-game.example.com/some-game',
 	verbose: true,
+});
+
+// wait until connected
+socket.on('ready', () => {
+	// add your code here
 });
 ```
 
-### Browser
+### Browser Module Syntax
 
 ```html
-<!-- makes `CodeGameSocket` accessable globally (as `window.CodeGameSocket`) -->
-<script src="./node_modules/@code-game-project/javascript-client/dist/index.js"></script>
-<!-- create a new instance -->
-<script>
+<script type="module">
+	// import the `CodeGameSocket` class into your module
+	import { CodeGameSocket } from '@code-game-project/javascript-client';
+
+	// create a new instance
 	const socket = new CodeGameSocket({
-		token: 'abc',
-		wsURL: 'ws://localhost:8081/',
+		username: 'your-username',
+		token: 'your-api-token',
+		wsURL: 'http://ws1.code-game.example.com/some-game',
 		verbose: true,
+	});
+
+	// wait until connected
+	socket.on('ready', () => {
+		// add your code here
 	});
 </script>
 ```

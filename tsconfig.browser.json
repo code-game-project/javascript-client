@@ -1,16 +1,16 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "ES6",
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "outDir": "dist",
+    "outDir": "dist/browser",
     "sourceMap": true,
     "strict": true,
-    "target": "ES6",
-    "resolveJsonModule": true
+    "target": "ES6"
   },
   "compileOnSave": true,
   "include": [
-    "src"
+    "src",
+    "node_modules/consola/src/browser"
   ]
 }

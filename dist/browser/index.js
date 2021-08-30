@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CodeGameSocket = void 0;
 const IS_NODE = ((typeof process !== 'undefined' && typeof process.stdin !== 'undefined') &&
     (typeof Window === 'undefined' || typeof window === 'undefined' || typeof window.document === 'undefined'));
-class CodeGameSocket {
+export class CodeGameSocket {
     /**
      * Creates a new `CodeGameSocket`
      * @param options Options required to connect and authenticate with the WebSocket server
@@ -127,6 +124,5 @@ class CodeGameSocket {
         return true;
     }
 }
-exports.CodeGameSocket = CodeGameSocket;
 ;
 //# sourceMappingURL=index.js.map

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Test</title>
+</head>
+
+<body>
+    <h1>Check the console to see what's happening.</h1>
+
+    <script type="module">
+        import { CodeGameSocket } from "../dist/browser/index.js";
+
+        const socket = new CodeGameSocket({
+            username: 'your-username',
+            token: 'your-api-token',
+            wsURL: 'ws://localhost:8081/snake',
+            verbose: true,
+        });
+
+        socket.on('ready', () => {
+            socket.emit('spawn');
+            socket.emit('move_forward');
+        });
+    </script>
+</body>
+
+</html>
