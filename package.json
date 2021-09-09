@@ -20,7 +20,7 @@
 		"url": "git+https://github.com/code-game-project/javascript-client.git"
 	},
 	"author": "Maxwell Matthis",
-	"license": "MIT",
+	"license": "GPL-3.0",
 	"bugs": {
 		"url": "https://github.com/code-game-project/javascript-client/issues"
 	},
