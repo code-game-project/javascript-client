@@ -49,7 +49,7 @@ socket.on('ready', () => {
 ```html
 <script type="module">
 	// import the `CodeGameSocket` class into your module
-	import { CodeGameSocket } from '@code-game-project/javascript-client';
+	import { CodeGameSocket } from './node_modules/@code-game-project/javascript-client/dist/browser/index.js';
 
 	// create a new instance
 	const socket = new CodeGameSocket({
