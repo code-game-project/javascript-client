@@ -1,39 +1,48 @@
 {
-	"name": "@code-game-project/javascript-client",
-	"version": "1.1.0",
-	"description": "JavaScript Client for CodeGame. It works in Node.js and most Browsers.",
-	"main": "dist/index.js",
-	"directories": {
-		"lib": "lib"
-	},
-	"scripts": {
-		"start": "echo \"Error: This is not meant to be run on its own. Please import it to your own program.\" && exit 1",
-		"test": "npm run node-js-test && npm run node-ts-test && npm run browser-test",
-		"node-js-test": "node tests/node.js",
-		"node-ts-test": "ts-node tests/node.ts",
-		"browser-test": "serve . -p 8880",
-		"build": "tsc --project tsconfig.json && tsc --project tsconfig.browser.json",
-		"prepare": "npm run build"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/code-game-project/javascript-client.git"
-	},
-	"author": "Maxwell Matthis",
-	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/code-game-project/javascript-client/issues"
-	},
-	"homepage": "https://github.com/code-game-project/javascript-client#readme",
-	"devDependencies": {
-		"@types/consola": "^2.2.5",
-		"@types/node": "^14.17.12",
-		"serve": "^12.0.0",
-		"ts-node": "^10.2.1",
-		"typescript": "^4.2.2"
-	},
-	"dependencies": {
-		"consola": "^2.15.3",
-		"ws": "^7.4.6"
-	}
+  "name": "@code-game-project/javascript-client",
+  "version": "1.2.0",
+  "description": "JavaScript Client for CodeGame. It works in Node.js and most Browsers.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/browser/index.js",
+  "directories": {
+    "lib": "dist",
+    "test": "tests"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "echo \"Error: This is not meant to be run on its own. Please import it to your own program.\" && exit 1",
+    "test": "npm run node-js-test && npm run node-ts-test && npm run browser-test",
+    "node-js-test": "node tests/node.js",
+    "node-ts-test": "ts-node tests/node.ts",
+    "browser-test": "serve . -p 8880",
+    "build": "tsc --project tsconfig.json --declaration && tsc --project tsconfig.browser.json --declaration",
+    "prepare": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/code-game-project/javascript-client.git"
+  },
+  "author": "Maxwell Matthis",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/code-game-project/javascript-client/issues"
+  },
+  "homepage": "https://github.com/code-game-project/javascript-client#readme",
+  "devDependencies": {
+    "@types/consola": "^2.2.5",
+    "@types/node": "^14.17.12",
+    "serve": "^12.0.0",
+    "ts-node": "^10.2.1",
+    "typescript": "^4.2.2"
+  },
+  "dependencies": {
+    "consola": "^2.15.3",
+    "ws": "^7.4.6"
+  }
 }
