@@ -1,5 +1,7 @@
 # JavaScript-Client
 
+## About
+
 This is the JavaScript Client for Code Game. It works in Node.js and most Browsers.
 
 ## Usage
