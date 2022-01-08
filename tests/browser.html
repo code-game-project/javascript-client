@@ -9,21 +9,23 @@
 </head>
 
 <body>
-    <h1>Check the console to see what's happening.</h1>
+    <h1>@code-game-project/javascript-client browser test</h1>
+    <p>This test helps check if the javascript-client works correctly in a browser environment.</p>
+    <p>Check the browser's javascript console to see what is happening.</p>
 
     <script type="module">
         import { CodeGameSocket } from "../dist/browser/index.js";
 
         const socket = new CodeGameSocket({
-            username: 'your-username',
-            token: 'your-api-token',
-            wsURL: 'ws://localhost:8081/snake',
-            verbose: true,
+            username: 'username',
+            gameId: 'new',
+            wsURL: 'ws://localhost:8082/ws',
+            verbose: true
         });
 
         socket.on('ready', () => {
-            socket.emit('spawn');
-            socket.emit('move_forward');
+            console.log('ready to do stuff!');
+            socket.leave();
         });
     </script>
 </body>

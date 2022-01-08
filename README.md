@@ -14,9 +14,9 @@ const { CodeGameSocket } = require('@code-game-project/javascript-client');
 
 // create a new instance
 const socket = new CodeGameSocket({
-	username: 'your-username',
-	token: 'your-api-token',
-	wsURL: 'http://ws1.code-game.example.com/some-game',
+	username: 'username',
+	gameId: '1234',
+	wsURL: 'wss://example-game.gode-game.example.com/ws',
 	verbose: true,
 });
 
@@ -34,9 +34,9 @@ import { CodeGameSocket } from '@code-game-project/javascript-client';
 
 // create a new instance
 const socket = new CodeGameSocket({
-	username: 'your-username',
-	token: 'your-api-token',
-	wsURL: 'http://ws1.code-game.example.com/some-game',
+	username: 'username',
+	gameId: '1234',
+	wsURL: 'wss://example-game.gode-game.example.com/ws',
 	verbose: true,
 });
 
@@ -48,6 +48,8 @@ socket.on('ready', () => {
 
 ### Browser Module Syntax
 
+__Note:__ The `javascript-client` can only be imported into ES6 modules. Make sure to add `type="module"` to your `<script>` tag.
+
 ```html
 <script type="module">
 	// import the `CodeGameSocket` class into your module
@@ -55,9 +57,9 @@ socket.on('ready', () => {
 
 	// create a new instance
 	const socket = new CodeGameSocket({
-		username: 'your-username',
-		token: 'your-api-token',
-		wsURL: 'http://ws1.code-game.example.com/some-game',
+		username: 'username',
+		gameId: '1234',
+		wsURL: 'wss://example-game.gode-game.example.com/ws',
 		verbose: true,
 	});
 

@@ -1,15 +1,18 @@
+/**
+ * This test checks if the javascript-client works in a Node.js/JavaScript environment.
+ */
+
 const { CodeGameSocket } = require('../dist/index.js');
 
 const socket = new CodeGameSocket({
     username: 'username',
-    token: 'api-token',
-    wsURL: 'http://localhost:8081/snake',
-    verbose: true,
+    gameId: 'new',
+    wsURL: 'ws://localhost:8082/ws',
+    verbose: true
 });
 
 socket.on('ready', () => {
-    socket.emit('spawn');
-    socket.emit('move_forward');
+    console.log('ready to do stuff!');
 });
 
-setTimeout(() => process.exit(), 5000);
+if (!(process.argv.slice(2) == "stay-alive")) setTimeout(() => process.exit(), 5000);

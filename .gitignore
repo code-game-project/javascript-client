@@ -1,5 +1,8 @@
 # npm modules
 node_modules/
 
+# compiled test files
+tests/dist
+
 # MacOS file manager layout
 .DS_Store
