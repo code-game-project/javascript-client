@@ -1,6 +1,6 @@
 {
   "name": "@code-game-project/javascript-client",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "JavaScript Client for CodeGame. It works in Node.js and most Browsers.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "consola": "^2.15.3",
+    "prompt-sync": "^4.2.0",
     "ws": "^7.4.6"
   }
 }
