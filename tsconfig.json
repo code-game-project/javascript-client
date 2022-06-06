@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "esnext",
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "outDir": "dist",
     "sourceMap": true,
     "strict": true,
-    "target": "ES6",
-    "resolveJsonModule": true
+    "target": "es2022",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true
   },
   "compileOnSave": true,
   "include": [
