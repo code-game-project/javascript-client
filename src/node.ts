@@ -65,3 +65,8 @@ class NodeDataStore extends DataStore {
 export const createSocket = <Events extends AnyEvent>(host: string, verbose?: 'silent' | 'error' | 'info' | 'debug'): Socket<Events> => new Socket<Events>(
   new NodeLogger(), new NodeDataStore(), fetch as any, WebSocket as any, host, verbose
 );
+
+export { Socket } from './socket';
+export { Logger } from './logger';
+export { DataStore } from './data-store';
+export * as standardEvents from './standard-events';
