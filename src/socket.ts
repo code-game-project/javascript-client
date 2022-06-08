@@ -226,26 +226,25 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	 * @throws if something goes wrong during the create process
 	 */
 	public async create(_public: boolean): Promise<string> {
-		return new Promise(async (resolve, reject) => {
-			let networkError;
-			let err;
-			for (const protocol of this.protocol('http')) {
-				const res = await create(this.fetch, protocol + '://' + this.host, { public: _public });
-				if (res.data) {
-					if ('game_id' in res.data) {
-						if (this.verbosityReached('info')) this.logger.info(`Created game with ID '${res.data.game_id}'.`);
-						resolve(res.data.game_id);
-					}
-					else if ('message' in res.data) reject(res.data.message);
+		let networkError;
+		let err = null;
+		for (const protocol of this.protocol('http')) {
+			const res = await create(this.fetch, protocol + '://' + this.host, { public: _public });
+			if (res.data) {
+				if ('game_id' in res.data) {
+					if (this.verbosityReached('info')) this.logger.info(`Created game with ID '${res.data.game_id}'.`);
+					if (err === null) this.tls = true;
+					return res.data.game_id;
 				}
-				networkError = res.networkError;
-				err = res.error;
-				this.tls = false;
+				else if ('message' in res.data) throw res.data.message;
 			}
-			if (networkError) reject('A network error occurred while trying to connect to the server.');
-			this.tls = undefined;
-			reject(err || 'Something went extremely wrong.');
-		});
+			networkError = res.networkError;
+			err = res.error;
+			this.tls = false;
+		}
+		if (networkError) return ('A network error occurred while trying to connect to the server.');
+		this.tls = undefined;
+		throw err || 'Something went extremely wrong.';
 	}
 
 	/**
@@ -256,17 +255,18 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 		return new Promise(async (resolve, reject) => {
 			if (this.socket) resolve();
 			else {
-				let _err: Event | null = null;
+				let err: Event | null = null;
 				for (const protocol of this.protocol('ws')) {
 					await new Promise<void>((_continue, _) => {
 						this.socket = new this.WebSocket_class(protocol + '://' + this.host + '/ws') as WebSocket;
 						const connectionFailed = (ev: Event) => {
-							_err = ev;
+							err = ev;
 							this.tls = false;
 							_continue();
 						};
 						this.socket.addEventListener('error', connectionFailed, { once: true });
 						this.socket.addEventListener('open', () => {
+							if (err === null) this.tls = true;
 							if (this.verbosityReached('info')) this.logger.success(`WebSocket to ${this.host} opened.`);
 							this.socket?.removeEventListener('error', connectionFailed);
 							this.socket?.addEventListener('close', () => this.verbosityReached('error') && this.logger.error('WebSocket closed!'));
@@ -278,10 +278,10 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 										console.log(wrappedEvent);
 									}
 									this.triggerEventListeners(wrappedEvent);
-								} catch (err) {
+								} catch (error) {
 									if (this.verbosityReached('error')) {
 										this.logger.error(`Error in WebSocket 'message' event listener:`);
-										console.error(err);
+										console.error(error);
 									};
 								}
 							});
@@ -296,9 +296,9 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 						});
 					});
 				}
-				if (_err) {
+				if (err) {
 					this.tls = undefined;
-					reject(_err);
+					reject(err);
 				}
 			}
 		});
@@ -325,10 +325,13 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	/** Gets the name of the game from the server's info endpoint */
 	private async getGameName(): Promise<string> {
 		if (this.gameName) return this.gameName;
-		let err;
+		let err = null;
 		for (const protocol of this.protocol('http')) {
 			const res = await getInfo(this.fetch, protocol + '://' + this.host);
-			if (res.data && 'name' in res.data) return (this.gameName = res.data.name);
+			if (res.data && 'name' in res.data) {
+				if (err === null) this.tls = true;
+				return (this.gameName = res.data.name);
+			};
 			this.tls = false;
 			err = res.error;
 		}
