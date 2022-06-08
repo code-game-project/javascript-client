@@ -66,7 +66,7 @@ export const createSocket = <Events extends AnyEvent>(host: string, verbose?: 's
   new NodeLogger(), new NodeDataStore(), fetch as any, WebSocket as any, host, verbose
 );
 
-export { Socket } from './socket';
-export { Logger } from './logger';
-export { DataStore } from './data-store';
-export * as standardEvents from './standard-events';
+export { Socket } from './socket.js';
+export { Logger } from './logger.js';
+export { DataStore } from './data-store.js';
+export * as standardEvents from './standard-events.js';
