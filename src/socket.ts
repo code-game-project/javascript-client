@@ -208,15 +208,31 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 		return this.usernameCache[playerId] || null;
 	}
 
+	/** Checks if SSL/TLS is available */
+	private async tlsAvailable() {
+		if (typeof this.tls !== 'undefined') return this.tls;
+		try {
+			await this.fetch('https://' + this.host);
+			return this.tls = true;
+		} catch (err) {
+			try {
+				await this.fetch('http://' + this.host);
+				return this.tls = false;
+			} catch (err) {
+				this.logger.error('Unable to connect to the server using "http" or "https".');
+				throw err;
+			}
+		}
+	}
+
 	/**
-	 * Returns the protocols to run the network request for.
+	 * Returns the correct protocol based on `this.tls`
 	 * @param protocol the base protocol (for example `http` or `ws`)
-	 * @returns an array of protocols
+	 * @returns the protocol with `://`
 	 */
-	private protocol(protocol: string): string[] {
-		if (typeof this.tls === 'undefined') return [protocol + 's', protocol];
-		else if (this.tls) return [protocol + 's'];
-		else return [protocol];
+	private async protocol(protocol: string): Promise<string> {
+		if (await this.tlsAvailable()) return protocol + 's://';
+		else return protocol + '://';
 	}
 
 	/**
@@ -226,25 +242,17 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	 * @throws if something goes wrong during the create process
 	 */
 	public async create(_public: boolean): Promise<string> {
-		let networkError;
-		let err = null;
-		for (const protocol of this.protocol('http')) {
-			const res = await create(this.fetch, protocol + '://' + this.host, { public: _public });
-			if (res.data) {
-				if ('game_id' in res.data) {
-					if (this.verbosityReached('info')) this.logger.info(`Created game with ID '${res.data.game_id}'.`);
-					if (err === null) this.tls = true;
-					return res.data.game_id;
-				}
-				else if ('message' in res.data) throw res.data.message;
+		const res = await create(this.fetch, await this.protocol('http') + this.host, { public: _public });
+		if (res.data) {
+			if ('game_id' in res.data) {
+				if (this.verbosityReached('info')) this.logger.info(`Created game with ID '${res.data.game_id}'.`);
+				return res.data.game_id;
 			}
-			networkError = res.networkError;
-			err = res.error;
-			this.tls = false;
+			else if ('message' in res.data) throw res.data.message;
 		}
-		if (networkError) return ('A network error occurred while trying to connect to the server.');
-		this.tls = undefined;
-		throw err || 'Something went extremely wrong.';
+		if (res.networkError) return 'A network error occurred while trying to connect to the server.';
+		this.logger.error('Unable to create a new game.');
+		throw res.error || 'Something went extremely wrong.';
 	}
 
 	/**
@@ -255,51 +263,35 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 		return new Promise(async (resolve, reject) => {
 			if (this.socket) resolve();
 			else {
-				let err: Event | null = null;
-				for (const protocol of this.protocol('ws')) {
-					await new Promise<void>((_continue, _) => {
-						this.socket = new this.WebSocket_class(protocol + '://' + this.host + '/ws') as WebSocket;
-						const connectionFailed = (ev: Event) => {
-							err = ev;
-							this.tls = false;
-							_continue();
-						};
-						this.socket.addEventListener('error', connectionFailed, { once: true });
-						this.socket.addEventListener('open', () => {
-							if (err === null) this.tls = true;
-							if (this.verbosityReached('info')) this.logger.success(`WebSocket to ${this.host} opened.`);
-							this.socket?.removeEventListener('error', connectionFailed);
-							this.socket?.addEventListener('close', () => this.verbosityReached('error') && this.logger.error('WebSocket closed!'));
-							this.socket?.addEventListener('message', (data) => {
-								try {
-									const wrappedEvent: EventWrapper<std.Events | Events> = JSON.parse(data.data);
-									if (this.verbosityReached('debug')) {
-										this.logger.info(`received '${wrappedEvent.event.name}':`);
-										console.log(wrappedEvent);
-									}
-									this.triggerEventListeners(wrappedEvent);
-								} catch (error) {
-									if (this.verbosityReached('error')) {
-										this.logger.error(`Error in WebSocket 'message' event listener:`);
-										console.error(error);
-									};
-								}
-							});
-							this.socket?.addEventListener('error', (ev) => {
-								if (this.verbosityReached('error')) {
-									this.logger.error(`WebSocket 'error' event:`);
-									console.error(ev);
-								}
-							});
-							this.autoHandleStandardEvents();
-							resolve();
-						});
+				this.socket = new this.WebSocket_class(await this.protocol('ws') + this.host + '/ws') as WebSocket;
+				this.socket.addEventListener('error', (ev) => reject(ev), { once: true });
+				this.socket.addEventListener('open', () => {
+					if (this.verbosityReached('info')) this.logger.success(`WebSocket to ${this.host} opened.`);
+					this.socket?.addEventListener('error', (ev) => {
+						if (this.verbosityReached('error')) {
+							this.logger.error(`WebSocket 'error' event:`);
+							console.error(ev);
+						}
 					});
-				}
-				if (err) {
-					this.tls = undefined;
-					reject(err);
-				}
+					this.socket?.addEventListener('close', () => this.verbosityReached('error') && this.logger.error('WebSocket closed!'));
+					this.socket?.addEventListener('message', (data) => {
+						try {
+							const wrappedEvent: EventWrapper<std.Events | Events> = JSON.parse(data.data);
+							if (this.verbosityReached('debug')) {
+								this.logger.info(`received '${wrappedEvent.event.name}':`);
+								console.log(wrappedEvent);
+							}
+							this.triggerEventListeners(wrappedEvent);
+						} catch (error) {
+							if (this.verbosityReached('error')) {
+								this.logger.error(`Error in WebSocket 'message' event listener:`);
+								console.error(error);
+							};
+						}
+					});
+					this.autoHandleStandardEvents();
+					resolve();
+				});
 			}
 		});
 	}
@@ -325,22 +317,14 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	/** Gets the name of the game from the server's info endpoint */
 	private async getGameName(): Promise<string> {
 		if (this.gameName) return this.gameName;
-		let err = null;
-		for (const protocol of this.protocol('http')) {
-			const res = await getInfo(this.fetch, protocol + '://' + this.host);
-			if (res.data && 'name' in res.data) {
-				if (err === null) this.tls = true;
-				return (this.gameName = res.data.name);
-			};
-			this.tls = false;
-			err = res.error;
-		}
-		this.tls = undefined;
+		const res = await getInfo(this.fetch, await this.protocol('http') + '://' + this.host);
+		if (res.data) return this.gameName = res.data.name;
+		if (res.networkError) return 'A network error occurred while trying to connect to the server.';
 		if (this.verbosityReached('error')) {
-			err && this.logger.error(err);
+			res.error && this.logger.error(res.error);
 			this.logger.warn('Unable to get the game\'s name. Using \'unknown\' for now.');
 		}
-		return (this.gameName = 'unknown');
+		return this.gameName = 'unknown';
 	}
 
 	/**
@@ -369,10 +353,10 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 				});
 				this.send<std.CgJoin>('cg_join', { game_id: gameId, username });
 			} catch (err) {
-				reject(err || 'Something went extremely wrong.');
+				reject(err);
 			}
 		});
-	}
+	};
 
 	/**
 	 * Tries to restore the session.
@@ -395,10 +379,10 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 				});
 				this.send<std.CgConnect>('cg_connect', { game_id: gameId, player_id: playerId, secret });
 			} catch (err) {
-				reject(err || 'Something went extremely wrong.');
+				reject(err);
 			}
 		});
-	}
+	};
 
 	/**
 	 * Connects to a game and player using session credentials.
@@ -427,10 +411,10 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 				});
 				this.send<std.CgConnect>('cg_connect', { game_id: gameId, player_id: playerId, secret });
 			} catch (err) {
-				reject(err || 'Something went extremely wrong.');
+				reject(err);
 			}
 		});
-	}
+	};
 
 	/**
 	 * Join a game as a spectator.
@@ -447,9 +431,9 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 				reject(err);
 			}
 		});
-	}
+	};
 
-	/**	Leaves the current game. */
+	/**	Leaves the current game and deletes the session from storage. */
 	public leave() {
 		this.send<std.CgLeave>('cg_leave');
 		if (this.gameName && this.username) this.dataStore._delete([this.dataStore.GAMES_PATH, this.gameName, this.username]);
