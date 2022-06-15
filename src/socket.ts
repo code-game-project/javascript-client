@@ -31,9 +31,9 @@ export type EventListenerCallback<E extends AnyEvent> = (data: E['data'], origin
 
 /** Session data to be saved in persistant storage. */
 export interface Session {
-	playerId: string,
+	player_id: string,
 	secret: string,
-	gameId: string,
+	game_id: string,
 }
 
 export class Socket<Events extends AnyEvent = AnyEvent> {
@@ -57,6 +57,8 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	private gameName?: string;
 	/** The username of this player. */
 	private username?: string;
+	/** The current session. */
+	private session?: Session;
 	/** Event listeners for events. */
 	private eventListeners: { [id: string]: EventListenerWrapper; } = {};
 	/** Event names mapped to event listeners. */
@@ -328,6 +330,14 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	}
 
 	/**
+	 * Gets the current session details.
+	 * @returns the session
+	 */
+	public getSession(): Readonly<Session | undefined> {
+		return this.session;
+	}
+
+	/**
 	 * Joins an existing game.
 	 * @param gameId The ID of the game to join.
 	 * @param username The username to join with.
@@ -339,11 +349,12 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 			try {
 				await this.makeWebSocketConnection();
 				const joinedListener = this.once<std.CgJoined>('cg_joined', async (data, origin) => {
-					this.dataStore.writeJSON([this.dataStore.GAMES_PATH, await this.getGameName(), username], {
-						playerId: origin,
-						gameId,
+					this.session = {
+						player_id: origin,
+						game_id: gameId,
 						secret: data.secret
-					});
+					};
+					this.dataStore.writeJSON<Session>([this.dataStore.GAMES_PATH, await this.getGameName(), username], this.session);
 					this.removeListener(errorListener);
 					resolve();
 				});
@@ -367,7 +378,9 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 		this.username = username;
 		return new Promise(async (resolve, reject) => {
 			try {
-				const { gameId, playerId, secret } = this.dataStore.readJSON([this.dataStore.GAMES_PATH, await this.getGameName(), username]) as Session;
+				const session = this.dataStore.readJSON<Session>([this.dataStore.GAMES_PATH, await this.getGameName(), username]);
+				if (!session) throw `Unable to restore session for game "${await this.getGameName()}" and username "${username}".`;
+				this.session = session;
 				await this.makeWebSocketConnection();
 				const connectedListener = this.once<std.CgConnected>('cg_connected', () => {
 					this.removeListener(errorListener);
@@ -377,7 +390,7 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 					this.removeListener(connectedListener);
 					reject(data.message);
 				});
-				this.send<std.CgConnect>('cg_connect', { game_id: gameId, player_id: playerId, secret });
+				this.send<std.CgConnect>('cg_connect', this.session);
 			} catch (err) {
 				reject(err);
 			}
@@ -397,11 +410,12 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 				await this.makeWebSocketConnection();
 				const connectedListener = this.once<std.CgConnected>('cg_connected', async (data) => {
 					this.username = data.username;
-					this.dataStore.writeJSON([this.dataStore.GAMES_PATH, await this.getGameName(), this.username], {
-						playerId,
-						gameId,
+					this.session = {
+						player_id: playerId,
+						game_id: gameId,
 						secret
-					});
+					};
+					this.dataStore.writeJSON<Session>([this.dataStore.GAMES_PATH, await this.getGameName(), this.username], this.session);
 					this.removeListener(errorListener);
 					resolve();
 				});

@@ -23,7 +23,7 @@ class BrowserDataStore extends DataStore {
    * Reads from localStorage
    * @param path localStorage key
    */
-  public readJSON(path: string[]): object | null {
+  public readJSON<T extends object>(path: string[]): T | null {
     const value = window.localStorage.getItem(path.join('.'));
     if (!value) return null;
     else return JSON.parse(value);
@@ -45,8 +45,9 @@ class BrowserDataStore extends DataStore {
   }
 }
 
+/** Creates a new CodeGame `Socket` for the Browser environment. */ 
 export const createSocket = <Events extends AnyEvent>(host: string, verbose?: 'silent' | 'error' | 'info' | 'debug'): Socket<Events> => new Socket<Events>(
-  new BrowserLogger(), new BrowserDataStore(), window.fetch, WebSocket, host, verbose
+  new BrowserLogger(), new BrowserDataStore(), (input, init) => window.fetch(input, init), WebSocket, host, verbose
 );
 
 export { Socket } from './socket';

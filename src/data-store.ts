@@ -6,13 +6,13 @@ export abstract class DataStore {
    * Reads from persistent storage.
    * @param path a path
    */
-  public abstract readJSON(path: string[]): object | null;
+  public abstract readJSON<T extends object>(path: string[]): T | null;
   /**
    * Writes to persistent storage.
    * @param path a path
    * @param data data to write
    */
-  public abstract writeJSON(path: string[], data: object): void;
+  public abstract writeJSON<T extends object>(path: string[], data: T): void;
   /**
    * Deletes something from persistent storage.
    * @param path a path

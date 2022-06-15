@@ -36,13 +36,13 @@ class NodeDataStore extends DataStore {
       if (existsSync(currentPath)) continue;
       mkdirSync(currentPath);
     }
-  };
+  }
   /**
    * Reads from a file.
    * @param path file path
    */
-  public readJSON(path: string[]): object {
-    return JSON.parse(readFileSync(join(...path), { encoding: 'utf-8' }));
+  public readJSON<T extends object>(path: string[]): T | null {
+    return existsSync(join(...path)) ? JSON.parse(readFileSync(join(...path), { encoding: 'utf-8' })) : null;
   }
   /**
    * Writes to a file.
@@ -62,6 +62,12 @@ class NodeDataStore extends DataStore {
   }
 }
 
+/**
+ * Creates a new CodeGame `Socket` for the Node.js environment.
+ * 
+ * __Note:__ You may see the docs for this function in your editor, even if you are not using Node.js.
+ * Just make sure that your bundler uses the `"browser"` version as defined in the `package.json`.
+ */ 
 export const createSocket = <Events extends AnyEvent>(host: string, verbose?: 'silent' | 'error' | 'info' | 'debug'): Socket<Events> => new Socket<Events>(
   new NodeLogger(), new NodeDataStore(), fetch as any, WebSocket as any, host, verbose
 );
