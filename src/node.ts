@@ -64,15 +64,17 @@ class NodeDataStore extends DataStore {
 
 /**
  * Creates a new CodeGame `Socket` for the Node.js environment.
+ * @param url The URL of the game server.
+ * @param verbosity The level of verbosity when logging.
  * 
  * __Note:__ You may see the docs for this function in your editor, even if you are not using Node.js.
  * Just make sure that your bundler uses the `"browser"` version as defined in the `package.json`.
- */ 
-export const createSocket = <Events extends AnyEvent>(host: string, verbose?: 'silent' | 'error' | 'info' | 'debug'): Socket<Events> => new Socket<Events>(
-  new NodeLogger(), new NodeDataStore(), fetch as any, WebSocket as any, host, verbose
+ */
+export const createSocket = <Events extends AnyEvent>(url: string, verbosity?: 'silent' | 'error' | 'info' | 'debug'): Socket<Events> => new Socket<Events>(
+  new NodeLogger(), new NodeDataStore(), fetch as any, WebSocket as any, url, verbosity
 );
 
-export { Socket } from './socket.js';
+export { Socket, EventListenerCallback, AnyEvent, EventListenerWrapper, EventWrapper, Session } from './socket.js';
 export { Logger } from './logger.js';
 export { DataStore } from './data-store.js';
 export * as standardEvents from './standard-events.js';

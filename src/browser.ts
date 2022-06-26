@@ -45,12 +45,16 @@ class BrowserDataStore extends DataStore {
   }
 }
 
-/** Creates a new CodeGame `Socket` for the Browser environment. */ 
-export const createSocket = <Events extends AnyEvent>(host: string, verbose?: 'silent' | 'error' | 'info' | 'debug'): Socket<Events> => new Socket<Events>(
-  new BrowserLogger(), new BrowserDataStore(), (input, init) => window.fetch(input, init), WebSocket, host, verbose
+/**
+ * Creates a new CodeGame `Socket` for the Browser environment.
+ * @param url The URL of the game server.
+ * @param verbosity The level of verbosity when logging.
+ */
+export const createSocket = <Events extends AnyEvent>(url: string, verbosity?: 'silent' | 'error' | 'info' | 'debug'): Socket<Events> => new Socket<Events>(
+  new BrowserLogger(), new BrowserDataStore(), (input, init) => window.fetch(input, init), WebSocket, url, verbosity
 );
 
-export { Socket } from './socket';
+export { Socket, EventListenerCallback, AnyEvent, EventListenerWrapper, EventWrapper, Session } from './socket';
 export { Logger } from './logger';
 export { DataStore } from './data-store';
 export * as standardEvents from './standard-events';

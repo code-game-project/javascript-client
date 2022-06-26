@@ -45,10 +45,10 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	private readonly fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>;
 	/** The correct `WebSocket` class based on the environment. */
 	private readonly WebSocket_class: typeof WebSocket;
-	/** Whether informational messages should be printed; this can be useful for debugging. */
+	/** The level of verbosity when logging. */
 	private readonly verbosity: 'silent' | 'error' | 'info' | 'debug';
-	/** The hostname of the game server. */
-	private readonly host: string;
+	/** The URL of the game server. */
+	private readonly url: string;
 	/** Whether SSL/TLS (for `https://` and `wss://`) is enabled on the game server. */
 	private tls?: boolean;
 	/** The `WebSocket` instance. */
@@ -66,26 +66,34 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	/** A map of player IDs and their corresponding usernames. */
 	private usernameCache: { [id: string]: string; } = {};
 
-	/** Creates a new CodeGame `Socket`. */
+	/**
+	 * Creates a new CodeGame `Socket`.
+	 * @param logger An implementation of `Logger` that works in your environment.
+	 * @param dataStore An implementation of `Logger` that works in your environment.
+	 * @param fetch An implementation of `fetch` that works in your environment.
+	 * @param webSocket An implementation of `WebSocket` that works in your environment.
+	 * @param url The URL of the game server.
+	 * @param verbosity The level of verbosity when logging.
+	 */
 	public constructor(
 		logger: Logger,
 		dataStore: DataStore,
 		fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>,
 		webSocket: typeof WebSocket,
-		host: string,
-		verbose: 'silent' | 'error' | 'info' | 'debug' = 'info',
+		url: string,
+		verbosity: 'silent' | 'error' | 'info' | 'debug' = 'info',
 	) {
 		this.logger = logger;
 		this.dataStore = dataStore;
 		this.fetch = fetch;
 		this.WebSocket_class = webSocket;
-		this.verbosity = verbose;
-		this.host = host;
+		this.verbosity = verbosity;
+		this.url = url;
 	}
 
 	/**
 	 * Checks if the verbosity level is high enough
-	 * @param required the required verbosity level
+	 * @param required The required verbosity level.
 	 * @returns `true` if the current verbosity level is equal or greater to the required verbosity level
 	 */
 	private verbosityReached(required: typeof this.verbosity): boolean {
@@ -113,7 +121,7 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 
 	/**
 	 * Removes an event listener by ID.
-	 * @param id the listner's ID
+	 * @param id the listner's ID.
 	 */
 	public removeListener(id: string) {
 		this.eventListenerEvents[this.eventListeners[id].name].delete(id);
@@ -122,7 +130,7 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 
 	/**
 	 * Handles triggering all callbacks registered for a given event.
-	 * @param we the wrapped event to be handled
+	 * @param we the wrapped event to be handled.
 	 */
 	private triggerEventListeners(we: EventWrapper<std.Events | Events>) {
 		const name = we.event.name;
@@ -144,7 +152,7 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	/**
 	 * Registers an event listener for a certain event.
 	 * @param name Name of the event to listen for.
-	 * @param callback Function that is executed when event is received.
+	 * @param callback Function that is executed when the event is received.
 	 * @returns the listener's ID
 	 */
 	public on<E extends std.Events | Events>(name: E['name'], callback: EventListenerCallback<E>): string {
@@ -154,7 +162,7 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	/**
 	 * Registers an event listener for a certain event that will self-destruct after being triggered once.
 	 * @param name Name of the event to listen for.
-	 * @param callback Function that is executed when event is received.
+	 * @param callback Function that is executed when the event is received.
 	 * @returns the listener's ID
 	 */
 	public once<E extends std.Events | Events>(name: E['name'], callback: EventListenerCallback<E>): string {
@@ -186,8 +194,8 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 
 	/**
 	 * Associates a player ID with a username.
-	 * @param playerId the player ID
-	 * @param username the corresponding username
+	 * @param playerId The player ID.
+	 * @param username The corresponding username.
 	 */
 	private cacheUsername(playerId: string, username: string): void {
 		this.usernameCache[playerId] = username;
@@ -195,7 +203,7 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 
 	/**
 	 * Deletes a player ID and the associated username from the cache.
-	 * @param playerId the player ID
+	 * @param playerId The player ID.
 	 */
 	private uncacheUsername(playerId: string): void {
 		delete this.usernameCache[playerId];
@@ -203,22 +211,22 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 
 	/**
 	 * Gets a username by player ID.
-	 * @param playerId the player ID
+	 * @param playerId The player ID.
 	 * @returns the username
 	 */
 	public resolveUsername(playerId: string): string | null {
 		return this.usernameCache[playerId] || null;
 	}
 
-	/** Checks if SSL/TLS is available */
+	/** Checks if SSL/TLS is available. */
 	private async tlsAvailable() {
 		if (typeof this.tls !== 'undefined') return this.tls;
 		try {
-			await this.fetch('https://' + this.host);
+			await this.fetch('https://' + this.url + '/info');
 			return this.tls = true;
 		} catch (err) {
 			try {
-				await this.fetch('http://' + this.host);
+				await this.fetch('http://' + this.url + '/info');
 				return this.tls = false;
 			} catch (err) {
 				this.logger.error('Unable to connect to the server using "http" or "https".');
@@ -228,9 +236,9 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	}
 
 	/**
-	 * Returns the correct protocol based on `this.tls`
-	 * @param protocol the base protocol (for example `http` or `ws`)
-	 * @returns the protocol with `://`
+	 * Returns the correct protocol based on `this.tls`.
+	 * @param protocol The base protocol (for example `http` or `ws`).
+	 * @returns the protocol followed by `://`
 	 */
 	private async protocol(protocol: string): Promise<string> {
 		if (await this.tlsAvailable()) return protocol + 's://';
@@ -240,11 +248,11 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	/**
 	 * Creates a new game.
 	 * @param _public Wheather the game should be listed as public.
-	 * @returns the game ID
+	 * @returns the game ID.
 	 * @throws if something goes wrong during the create process
 	 */
 	public async create(_public: boolean): Promise<string> {
-		const res = await create(this.fetch, await this.protocol('http') + this.host, { public: _public });
+		const res = await create(this.fetch, await this.protocol('http') + this.url, { public: _public });
 		if (res.data) {
 			if ('game_id' in res.data) {
 				if (this.verbosityReached('info')) this.logger.info(`Created game with ID '${res.data.game_id}'.`);
@@ -265,10 +273,10 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 		return new Promise(async (resolve, reject) => {
 			if (this.socket) resolve();
 			else {
-				this.socket = new this.WebSocket_class(await this.protocol('ws') + this.host + '/ws') as WebSocket;
+				this.socket = new this.WebSocket_class(await this.protocol('ws') + this.url + '/ws') as WebSocket;
 				this.socket.addEventListener('error', (ev) => reject(ev), { once: true });
 				this.socket.addEventListener('open', () => {
-					if (this.verbosityReached('info')) this.logger.success(`WebSocket to ${this.host} opened.`);
+					if (this.verbosityReached('info')) this.logger.success(`WebSocket to ${this.url} opened.`);
 					this.socket?.addEventListener('error', (ev) => {
 						if (this.verbosityReached('error')) {
 							this.logger.error(`WebSocket 'error' event:`);
@@ -316,10 +324,10 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 		this.on<std.CgError>('cg_error', (data) => this.verbosityReached('error') && this.logger.error(data.message));
 	}
 
-	/** Gets the name of the game from the server's info endpoint */
+	/** Gets the name of the game from the server's info endpoint. */
 	private async getGameName(): Promise<string> {
 		if (this.gameName) return this.gameName;
-		const res = await getInfo(this.fetch, await this.protocol('http') + '://' + this.host);
+		const res = await getInfo(this.fetch, await this.protocol('http') + this.url);
 		if (res.data) return this.gameName = res.data.name;
 		if (res.networkError) return 'A network error occurred while trying to connect to the server.';
 		if (this.verbosityReached('error')) {
