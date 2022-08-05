@@ -1,7 +1,6 @@
 # JavaScript-Client
 
-![CG Protocol Version](https://img.shields.io/badge/Protocol-v0.6-orange)
-![CG Client Version](https://img.shields.io/badge/Client-v0.3-yellow)
+![CodeGame Specification Version](https://img.shields.io/badge/CodeGame_Specification-v0.7-orange)
 
 This is the JavaScript (and TypeScript) client library for [CodeGame](https://code-game.org/).
 
@@ -20,18 +19,18 @@ import { createSocket } from '@code-game-project/javascript-client';
 // Node.js only: Get the command line arguments (`node your-script.js cg.example.com joe 1234-5678`)
 let [host, username, gameId] = process.argv.slice(2)
 
-// Browser only: Get the query parameters (`http://localhost:8080/?host=cg.example.com&username=joe&gameId=1234-5678`)
-const params = new Proxy(new URLSearchParams(window.location.search), {
-  get: (searchParams, prop) => searchParams.get(prop),
-});
-let { host, username, gameId } = params;
+// Browser only: Get the query parameters (`http://localhost:8080/?host=cg.example.com&username=joe&game_id=1234-5678`)
+const params = new URLSearchParams(window.location.search);
+const url = params.get('host');
+const username = params.get('username');
+let gameId = params.get('game_id');
 
 // create a new `Socket` with the 'debug' logging level
-const socket = createSocket(host, 'debug');
+const socket = createSocket(url, 'debug');
 
 // listen for some event
-socket.on('some_event', (data, origin) => {
-	// send an event back
+socket.on('some_event', (data) => {
+	// send a command in response
 	socket.send('an_event', {
 		some: 'data'
 	});
@@ -44,7 +43,7 @@ socket.on('some_event', (data, origin) => {
 		await socket.restoreSession(username);
 	} catch (err) {
 		// create a new public game if no game ID was specified
-		if (!gameId) gameId = await socket.create(true);
+		if (!gameId) gameId = await socket.create(true, true);
 		// join the game
 		await socket.join(gameId, username);
 	}

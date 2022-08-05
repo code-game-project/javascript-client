@@ -1,68 +1,62 @@
-import { v4 } from 'uuid';
-import { create, getInfo } from './api.js';
+import { getInfo, getPlayer } from './api.js';
 import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
-import * as std from './standard-events.js';
+import { trimURL } from './utils.js';
 
-/** A wrapper for all events that adds the `to` and `from` properties. */
-export interface EventWrapper<E> {
-	origin: string,
-	event: E;
-}
-
-/** An interface representing all possibly valid events. */
-export interface AnyEvent {
-	name: string,
-	data?: object | undefined;
-}
+const CLIENT_CG_VERSION = [0, 7];
 
 /** Wraps a `Callback` and add the event's name and listener options. */
-export interface EventListenerWrapper {
+interface EventListenerWrapper {
 	/** The name of the event that the listener ist listening for. */
 	name: string,
 	/** The callback function to be executed every time the event is received. */
-	callback: EventListenerCallback<any>,
+	callback: Function,
 	/** Whether to destroy the event listener after being triggered once. */
 	once?: boolean;
 }
 
-/** Signature of a callback function that allows it to have a generically typed input `data` and return `any`thing. */
-export type EventListenerCallback<E extends AnyEvent> = (data: E['data'], origin: string) => void;
-
-/** Session data to be saved in persistant storage. */
-export interface Session {
-	player_id: string,
-	secret: string,
-	game_id: string,
+/** Logging levels for the Socket. */
+export enum Verbosity {
+	/** Don't log __anything__. Even exceptions in the library will be suppressed. */
+	SILENT = 'silent',
+	/** Only log errors. */
+	ERROR = 'error',
+	/** Only log errors and warnings. */
+	WARNING = 'warning',
+	/** Log all important game events as well as errors and warnings. */
+	INFO = 'info',
+	/** Log everything. */
+	DEBUG = 'debug'
 }
 
-export class Socket<Events extends AnyEvent = AnyEvent> {
+/**
+ * An extensible class that implements logging, storage,
+ * username resolution and an easy way to obtain and
+ * maintain a websocket connection.
+ */
+export class Socket {
 	/** The correct `Logger` instance based on the environment. */
-	private readonly logger: Logger;
+	protected readonly logger: Logger;
 	/** The correct `DataStore` instance based on the environment. */
-	private readonly dataStore: DataStore;
+	protected readonly dataStore: DataStore;
 	/** The correct `fetch` function based on the environment. */
-	private readonly fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>;
+	protected readonly fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>;
 	/** The correct `WebSocket` class based on the environment. */
-	private readonly WebSocket_class: typeof WebSocket;
+	protected readonly WebSocket_class: typeof WebSocket;
 	/** The level of verbosity when logging. */
-	private readonly verbosity: 'silent' | 'error' | 'info' | 'debug';
-	/** The URL of the game server. */
-	private readonly url: string;
+	public verbosity: Verbosity;
+	/** The host (and base path) of the game server. */
+	protected readonly host: string;
 	/** Whether SSL/TLS (for `https://` and `wss://`) is enabled on the game server. */
 	private tls?: boolean;
 	/** The `WebSocket` instance. */
-	private socket?: WebSocket;
-	/** The name of the current game. */
-	private gameName?: string;
-	/** The username of this player. */
-	private username?: string;
-	/** The current session. */
-	private session?: Session;
+	protected socket?: WebSocket;
 	/** Event listeners for events. */
-	private eventListeners: { [id: string]: EventListenerWrapper; } = {};
+	private listeners: { [id: symbol]: EventListenerWrapper; } = {};
 	/** Event names mapped to event listeners. */
-	private eventListenerEvents: { [id: string]: Set<string>; } = {};
+	private listenerGroups: { [id: string]: Set<symbol>; } = {};
+	/** The game ID, seperate from the session in case there is none. */
+	protected gameId?: string;
 	/** A map of player IDs and their corresponding usernames. */
 	private usernameCache: { [id: string]: string; } = {};
 
@@ -72,7 +66,7 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	 * @param dataStore An implementation of `Logger` that works in your environment.
 	 * @param fetch An implementation of `fetch` that works in your environment.
 	 * @param webSocket An implementation of `WebSocket` that works in your environment.
-	 * @param url The URL of the game server.
+	 * @param host The URL of the game server.
 	 * @param verbosity The level of verbosity when logging.
 	 */
 	public constructor(
@@ -80,15 +74,36 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 		dataStore: DataStore,
 		fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>,
 		webSocket: typeof WebSocket,
-		url: string,
-		verbosity: 'silent' | 'error' | 'info' | 'debug' = 'info',
+		host: string,
+		verbosity: Verbosity = Verbosity.INFO,
 	) {
 		this.logger = logger;
 		this.dataStore = dataStore;
 		this.fetch = fetch;
 		this.WebSocket_class = webSocket;
 		this.verbosity = verbosity;
-		this.url = url;
+		this.host = trimURL(host);
+		this.checkVersionCompatible();
+	}
+
+	/**
+	 * Checks if the CodeGame version of the server is compatible
+	 * with the CodeGame version of the Client.
+	 */
+	private async checkVersionCompatible() {
+		const res = await getInfo(this.fetch, await this.protocol('http') + this.host);
+		if (!res.data?.name || !res.data.cg_version) {
+			this.logger.error('The URL specified does not seem to belong to a CodeGame server.');
+			return;
+		}
+		const serverVersionSplit = res.data.cg_version.split('.', 2);
+		const serverMajor = Number(serverVersionSplit[0]);
+		const serverMinor = Number(serverVersionSplit[1] || 0);
+		if (
+			serverMajor !== CLIENT_CG_VERSION[0] ||
+			serverMinor < CLIENT_CG_VERSION[1] ||
+			serverMajor === 0 && serverMinor !== CLIENT_CG_VERSION[1]
+		) this.logger.warn(`CodeGame version mismatch. Server: v${res.data.cg_version}, client: v${CLIENT_CG_VERSION.join('.')}`);
 	}
 
 	/**
@@ -96,368 +111,148 @@ export class Socket<Events extends AnyEvent = AnyEvent> {
 	 * @param required The required verbosity level.
 	 * @returns `true` if the current verbosity level is equal or greater to the required verbosity level
 	 */
-	private verbosityReached(required: typeof this.verbosity): boolean {
-		if (this.verbosity === 'silent') return false;
-		else if (this.verbosity === 'error' && required === 'error') return true;
-		else if (this.verbosity === 'info' && (required === 'info' || required === 'error')) return true;
-		else if (this.verbosity === 'debug') return true;
+	protected verbosityReached(required: Verbosity): boolean {
+		if (this.verbosity === Verbosity.SILENT) return false;
+		else if (this.verbosity === Verbosity.ERROR && required === Verbosity.ERROR) return true;
+		else if (this.verbosity === Verbosity.INFO && (required === Verbosity.INFO || required === Verbosity.ERROR)) return true;
+		else if (this.verbosity === Verbosity.DEBUG) return true;
 		return false;
 	}
 
-	/**
-	 * Registers an event listener for a certain event.
-	 * @param name Name of the event to listen for.
-	 * @param callback Function that is executed when event is received.
-	 * @param once If the listener should self-destruct after being triggered once.
-	 * @returns the listener's ID
-	 */
-	private listen<E extends std.Events | Events>(name: E['name'], callback: EventListenerCallback<E>, once: boolean): string {
-		const id = v4();
-		if (!this.eventListenerEvents[name]) this.eventListenerEvents[name] = new Set();
-		this.eventListenerEvents[name].add(id);
-		this.eventListeners[id] = ({ name, callback, once });
-		return id;
-	}
-
-	/**
-	 * Removes an event listener by ID.
-	 * @param id the listner's ID.
-	 */
-	public removeListener(id: string) {
-		this.eventListenerEvents[this.eventListeners[id].name].delete(id);
-		delete this.eventListeners[id];
-	}
-
-	/**
-	 * Handles triggering all callbacks registered for a given event.
-	 * @param we the wrapped event to be handled.
-	 */
-	private triggerEventListeners(we: EventWrapper<std.Events | Events>) {
-		const name = we.event.name;
-		if (!(name in this.eventListenerEvents)) return;
-		for (const id of this.eventListenerEvents[name]) {
-			const { callback, once } = this.eventListeners[id];
-			try {
-				callback(we.event.data, we.origin);
-			} catch (err) {
-				if (this.verbosityReached('error')) {
-					this.logger.error(`Unhandled exception in event listener for event '${name}' ('${callback.toString().slice(0, 100)}'):`);
-					console.error(err);
-				}
-			}
-			if (once) this.removeListener(id);
-		}
-	}
-
-	/**
-	 * Registers an event listener for a certain event.
-	 * @param name Name of the event to listen for.
-	 * @param callback Function that is executed when the event is received.
-	 * @returns the listener's ID
-	 */
-	public on<E extends std.Events | Events>(name: E['name'], callback: EventListenerCallback<E>): string {
-		return this.listen<E>(name, callback, false);
-	}
-
-	/**
-	 * Registers an event listener for a certain event that will self-destruct after being triggered once.
-	 * @param name Name of the event to listen for.
-	 * @param callback Function that is executed when the event is received.
-	 * @returns the listener's ID
-	 */
-	public once<E extends std.Events | Events>(name: E['name'], callback: EventListenerCallback<E>): string {
-		return this.listen<E>(name, callback, true);
-	}
-
-	/**
-	 * Sends an event.
-	 * @param name The name of the event to be sent.
-	 * @param data Optional options to go along with your event.
-	 */
-	public send<E extends std.Events | Events>(name: E['name'], ...data: E['data'] extends undefined ? [undefined?] : [E['data']]): void {
-		const zerothData = data[0];
-		try {
-			if (this.socket) {
-				this.socket.send(JSON.stringify({ name, data: zerothData }));
-				if (this.verbosityReached('debug')) {
-					this.logger.info(`sent '${name}'${zerothData ? ':' : ''}`);
-					if (zerothData) console.log(zerothData);
-				}
-			} else if (this.verbosityReached('error')) this.logger.error('There is currently no WebSocket connection established!');
-		} catch (err) {
-			if (this.verbosityReached('error')) {
-				this.logger.error(`Unable to send event '${name}':`);
-				console.error(err);
-			}
-		}
-	}
-
-	/**
-	 * Associates a player ID with a username.
-	 * @param playerId The player ID.
-	 * @param username The corresponding username.
-	 */
-	private cacheUsername(playerId: string, username: string): void {
-		this.usernameCache[playerId] = username;
-	}
-
-	/**
-	 * Deletes a player ID and the associated username from the cache.
-	 * @param playerId The player ID.
-	 */
-	private uncacheUsername(playerId: string): void {
-		delete this.usernameCache[playerId];
-	}
-
-	/**
-	 * Gets a username by player ID.
-	 * @param playerId The player ID.
-	 * @returns the username
-	 */
-	public resolveUsername(playerId: string): string | null {
-		return this.usernameCache[playerId] || null;
-	}
-
-	/** Checks if SSL/TLS is available. */
-	private async tlsAvailable() {
+	/** Checks if SSL/TLS is available for the game server. */
+	private async tlsAvailable(): Promise<boolean> {
 		if (typeof this.tls !== 'undefined') return this.tls;
 		try {
-			await this.fetch('https://' + this.url + '/info');
+			await this.fetch('https://' + this.host + '/api/info');
 			return this.tls = true;
 		} catch (err) {
 			try {
-				await this.fetch('http://' + this.url + '/info');
+				await this.fetch('http://' + this.host + '/api/info');
+				if (this.verbosityReached(Verbosity.WARNING)) {
+					this.logger.warn('Server does not support TLS.');
+				}
 				return this.tls = false;
 			} catch (err) {
-				this.logger.error('Unable to connect to the server using "http" or "https".');
+				if (this.verbosityReached(Verbosity.ERROR)) {
+					this.logger.error('Unable to connect to the server using "http" or "https".');
+				}
 				throw err;
 			}
 		}
-	}
+	};
 
 	/**
 	 * Returns the correct protocol based on `this.tls`.
 	 * @param protocol The base protocol (for example `http` or `ws`).
 	 * @returns the protocol followed by `://`
 	 */
-	private async protocol(protocol: string): Promise<string> {
+	protected async protocol(protocol: string): Promise<string> {
 		if (await this.tlsAvailable()) return protocol + 's://';
 		else return protocol + '://';
+	};
+
+	/**
+	 * Gets the username of a player in the current game from the server.
+	 * @param playerId The player ID.
+	 * @returns the username or null if the username is unavailable
+	 */
+	protected async fetchUsername(playerId: string): Promise<string | null> {
+		if (this.gameId) {
+			const res = await getPlayer(
+				this.fetch,
+				{ game_id: this.gameId, player_id: playerId },
+				await this.protocol('http') + this.host
+			);
+			if (res.data && 'username' in res.data) return this.usernameCache[playerId] = res.data.username;
+			if (res.statusCode === 404 && this.verbosityReached(Verbosity.WARNING)) this.logger.warn(`Unable to find username for player "${playerId}".`);
+			if (res.networkError && this.verbosityReached(Verbosity.ERROR)) this.logger.error('A network error occurred while trying to connect to the server.');
+		} else if (this.verbosityReached(Verbosity.ERROR)) {
+			this.logger.error('Cannot resolve usernames before connecting to a game.');
+		}
+		return null;
 	}
 
 	/**
-	 * Creates a new game.
-	 * @param _public Wheather the game should be listed as public.
-	 * @returns the game ID.
-	 * @throws if something goes wrong during the create process
+	 * Gets a username by player ID.
+	 * @param playerId The player ID.
+	 * @returns the username or null if the username is unavailable
 	 */
-	public async create(_public: boolean): Promise<string> {
-		const res = await create(this.fetch, await this.protocol('http') + this.url, { public: _public });
-		if (res.data) {
-			if ('game_id' in res.data) {
-				if (this.verbosityReached('info')) this.logger.info(`Created game with ID '${res.data.game_id}'.`);
-				return res.data.game_id;
-			}
-			else if ('message' in res.data) throw res.data.message;
-		}
-		if (res.networkError) return 'A network error occurred while trying to connect to the server.';
-		this.logger.error('Unable to create a new game.');
-		throw res.error || 'Something went extremely wrong.';
-	}
+	public async getUsername(playerId: string): Promise<string | null> {
+		return this.usernameCache[playerId] || await this.fetchUsername(playerId);
+	};
 
 	/**
 	 * Creates a new WebSocket connection to the game server.
+	 * @param endpoint The path to a WebSocket endpoint.
+	 * @param messageHandler A function to handle the 'message' event.
 	 * @throws if an error occurs that cannot be handled
 	 */
-	private async makeWebSocketConnection(): Promise<void> {
+	protected async makeWebSocketConnection(endpoint: string, messageHandler: (data: MessageEvent<any>) => void): Promise<void> {
 		return new Promise(async (resolve, reject) => {
 			if (this.socket) resolve();
 			else {
-				this.socket = new this.WebSocket_class(await this.protocol('ws') + this.url + '/ws') as WebSocket;
+				this.socket = new this.WebSocket_class(await this.protocol('ws') + this.host + endpoint) as WebSocket;
 				this.socket.addEventListener('error', (ev) => reject(ev), { once: true });
 				this.socket.addEventListener('open', () => {
-					if (this.verbosityReached('info')) this.logger.success(`WebSocket to ${this.url} opened.`);
+					if (this.verbosityReached(Verbosity.INFO)) this.logger.success(`WebSocket to ${this.host} opened.`);
 					this.socket?.addEventListener('error', (ev) => {
-						if (this.verbosityReached('error')) {
-							this.logger.error(`WebSocket 'error' event:`);
-							console.error(ev);
+						if (this.verbosityReached(Verbosity.ERROR)) {
+							this.logger.error('WebSocket "error" event:', ev);
 						}
 					});
-					this.socket?.addEventListener('close', () => this.verbosityReached('error') && this.logger.error('WebSocket closed!'));
-					this.socket?.addEventListener('message', (data) => {
-						try {
-							const wrappedEvent: EventWrapper<std.Events | Events> = JSON.parse(data.data);
-							if (this.verbosityReached('debug')) {
-								this.logger.info(`received '${wrappedEvent.event.name}':`);
-								console.log(wrappedEvent);
-							}
-							this.triggerEventListeners(wrappedEvent);
-						} catch (error) {
-							if (this.verbosityReached('error')) {
-								this.logger.error(`Error in WebSocket 'message' event listener:`);
-								console.error(error);
-							};
+					this.socket?.addEventListener('close', () => {
+						if (this.verbosityReached(Verbosity.ERROR)) {
+							this.logger.error('WebSocket closed!');
 						}
 					});
-					this.autoHandleStandardEvents();
+					this.socket?.addEventListener('message', messageHandler);
 					resolve();
 				});
 			}
 		});
+	};
+
+	/**
+	 * Registers an event listener for a certain event.
+	 * @param name Name of the event to listen for.
+	 * @param callback Function that is executed when event is received.
+	 * @param once Whether the listener should self-destruct after being triggered once.
+	 * @returns the listener's ID
+	 */
+	protected listen(name: string, callback: Function, once: boolean): symbol {
+		const id = Symbol();
+		if (!this.listenerGroups[name]) this.listenerGroups[name] = new Set();
+		this.listenerGroups[name].add(id);
+		this.listeners[id] = ({ name, callback, once });
+		return id;
 	}
 
-	/** Registers event listeners for standard events that need to be handled by the library. */
-	private autoHandleStandardEvents() {
-		this.on<std.CgNewPlayer>('cg_new_player', (data, origin) => {
-			if (this.verbosityReached('info')) this.logger.info(`${data.username} joined the game.`);
-			this.cacheUsername(origin, data.username);
-		});
-		this.on<std.CgInfo>('cg_info', (data) => {
-			for (const [playerId, username] of Object.entries(data.players)) {
-				this.cacheUsername(playerId, username);
+	/**
+	 * Removes an event listener by ID.
+	 * @param id The listner's ID.
+	 */
+	public removeListener(id: symbol): void {
+		this.listenerGroups[this.listeners[id].name].delete(id);
+		delete this.listeners[id];
+	};
+
+	/**
+	 * Handles triggering all callbacks registered for a given event.
+	 * @param eventName The name of the event to be handled.
+	 * @param data The data to be passed to the listeners.
+	 */
+	protected triggerListeners(eventName: string, ...data: any[]): void {
+		if (!(eventName in this.listenerGroups)) return;
+		for (const id of this.listenerGroups[eventName]) {
+			const { callback, once } = this.listeners[id];
+			try {
+				callback(...data);
+			} catch (err) {
+				if (this.verbosityReached(Verbosity.ERROR)) {
+					this.logger.error(`Unhandled exception in listener for event "${eventName}" ('${callback.toString().slice(0, 100)}'):`, err);
+				}
 			}
-		});
-		this.on<std.CgLeft>('cg_left', (_, origin) => {
-			if (this.verbosityReached('info')) this.logger.info(`${this.resolveUsername(origin)} left the game.`);
-			this.uncacheUsername(origin);
-		});
-		this.on<std.CgError>('cg_error', (data) => this.verbosityReached('error') && this.logger.error(data.message));
-	}
-
-	/** Gets the name of the game from the server's info endpoint. */
-	private async getGameName(): Promise<string> {
-		if (this.gameName) return this.gameName;
-		const res = await getInfo(this.fetch, await this.protocol('http') + this.url);
-		if (res.data) return this.gameName = res.data.name;
-		if (res.networkError) return 'A network error occurred while trying to connect to the server.';
-		if (this.verbosityReached('error')) {
-			res.error && this.logger.error(res.error);
-			this.logger.warn('Unable to get the game\'s name. Using \'unknown\' for now.');
+			if (once) this.removeListener(id);
 		}
-		return this.gameName = 'unknown';
 	}
-
-	/**
-	 * Gets the current session details.
-	 * @returns the session
-	 */
-	public getSession(): Readonly<Session | undefined> {
-		return this.session;
-	}
-
-	/**
-	 * Joins an existing game.
-	 * @param gameId The ID of the game to join.
-	 * @param username The username to join with.
-	 * @throws if something goes wrong during the join process
-	 */
-	public async join(gameId: string, username: string): Promise<void> {
-		this.username = username;
-		return new Promise(async (resolve, reject) => {
-			try {
-				await this.makeWebSocketConnection();
-				const joinedListener = this.once<std.CgJoined>('cg_joined', async (data, origin) => {
-					this.session = {
-						player_id: origin,
-						game_id: gameId,
-						secret: data.secret
-					};
-					this.dataStore.writeJSON<Session>([this.dataStore.GAMES_PATH, await this.getGameName(), username], this.session);
-					this.removeListener(errorListener);
-					resolve();
-				});
-				const errorListener = this.once<std.CgError>('cg_error', (data) => {
-					this.removeListener(joinedListener);
-					reject(data.message);
-				});
-				this.send<std.CgJoin>('cg_join', { game_id: gameId, username });
-			} catch (err) {
-				reject(err);
-			}
-		});
-	};
-
-	/**
-	 * Tries to restore the session.
-	 * @param username The username that was used when the session was created.
-	 * @throws if the session cannot be restored
-	 */
-	public async restoreSession(username: string): Promise<void> {
-		this.username = username;
-		return new Promise(async (resolve, reject) => {
-			try {
-				const session = this.dataStore.readJSON<Session>([this.dataStore.GAMES_PATH, await this.getGameName(), username]);
-				if (!session) throw `Unable to restore session for game "${await this.getGameName()}" and username "${username}".`;
-				this.session = session;
-				await this.makeWebSocketConnection();
-				const connectedListener = this.once<std.CgConnected>('cg_connected', () => {
-					this.removeListener(errorListener);
-					resolve();
-				});
-				const errorListener = this.once<std.CgError>('cg_error', (data) => {
-					this.removeListener(connectedListener);
-					reject(data.message);
-				});
-				this.send<std.CgConnect>('cg_connect', this.session);
-			} catch (err) {
-				reject(err);
-			}
-		});
-	};
-
-	/**
-	 * Connects to a game and player using session credentials.
-	 * @param gameId The ID of the game to connect to.
-	 * @param playerId The ID of the player to connect to.
-	 * @param secret The secret of the player.
-	 * @throws if something goes wrong during the connect process
-	 */
-	public async connect(gameId: string, playerId: string, secret: string): Promise<void> {
-		return new Promise(async (resolve, reject) => {
-			try {
-				await this.makeWebSocketConnection();
-				const connectedListener = this.once<std.CgConnected>('cg_connected', async (data) => {
-					this.username = data.username;
-					this.session = {
-						player_id: playerId,
-						game_id: gameId,
-						secret
-					};
-					this.dataStore.writeJSON<Session>([this.dataStore.GAMES_PATH, await this.getGameName(), this.username], this.session);
-					this.removeListener(errorListener);
-					resolve();
-				});
-				const errorListener = this.once<std.CgError>('cg_error', (data) => {
-					this.removeListener(connectedListener);
-					reject(data.message);
-				});
-				this.send<std.CgConnect>('cg_connect', { game_id: gameId, player_id: playerId, secret });
-			} catch (err) {
-				reject(err);
-			}
-		});
-	};
-
-	/**
-	 * Join a game as a spectator.
-	 * @param gameId The ID of the game to spectate.
-	 * @throws if the connection cannot be established
-	 */
-	public async spectate(gameId: string): Promise<void> {
-		return new Promise(async (resolve, reject) => {
-			try {
-				await this.makeWebSocketConnection();
-				this.send<std.CgSpectate>('cg_spectate', { game_id: gameId });
-				resolve();
-			} catch (err) {
-				reject(err);
-			}
-		});
-	};
-
-	/**	Leaves the current game and deletes the session from storage. */
-	public leave() {
-		this.send<std.CgLeave>('cg_leave');
-		if (this.gameName && this.username) this.dataStore._delete([this.dataStore.GAMES_PATH, this.gameName, this.username]);
-	}
-};
+}

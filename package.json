@@ -1,6 +1,6 @@
 {
-  "name": "@code-game-project/javascript-client",
-  "version": "3.2.1",
+  "name": "@code-game-project/client",
+  "version": "0.1.0",
   "description": "JavaScript Client for CodeGame. It works in Node.js and most Browsers.",
   "license": "MIT",
   "author": {
@@ -30,12 +30,12 @@
   ],
   "scripts": {
     "start": "echo \"Error: This is not meant to be run on its own. Please import it into your own program.\" && exit 1",
-    "build": "npx tsc --project tsconfig.json --declaration",
+    "build": "npx tsc --declaration",
+    "test": "npm run build && node tests/utils.js",
     "prepare": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^14.18.5",
-    "@types/uuid": "^8.3.4",
     "@types/ws": "^8.5.3",
     "typescript": "^4.2.2"
   },
@@ -44,7 +44,6 @@
     "env-paths": "^3.0.0",
     "node-fetch": "^3.2.4",
     "prompt-sync": "^4.2.0",
-    "uuid": "^8.3.2",
     "ws": "^7.4.6"
   }
 }

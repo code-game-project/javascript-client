@@ -1,4 +1,6 @@
-import { AnyEvent, Socket } from './socket.js';
+import { Verbosity } from './socket.js';
+import { AnyEvent, GameSocket } from './game-socket.js';
+import { DebugSocket } from './debug-socket.js';
 import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
@@ -8,22 +10,26 @@ import WebSocket from 'ws';
 import envPaths from 'env-paths';
 import fetch from 'node-fetch';
 
-class NodeLogger extends Logger {
-  public success(msg: string) {
-    consola.success({ message: msg, badge: true });
+export class NodeLogger extends Logger {
+  public success(message: any, context?: any) {
+    if (context) consola.success(message, context);
+    else consola.success(message);
   }
-  public warn(msg: string) {
-    consola.warn({ message: msg, badge: true });
+  public warn(message: any, context?: any) {
+    if (context) consola.warn(message, context);
+    else consola.warn(message);
   }
-  public info(msg: string) {
-    consola.info({ message: msg, badge: true });
+  public info(message: any, context?: any) {
+    if (context) consola.info(message, context);
+    else consola.info(message);
   }
-  public error(msg: string) {
-    consola.error({ message: String(msg), badge: true });
+  public error(message: any, context?: any) {
+    if (context) consola.error(message, context);
+    else consola.error(message);
   }
 }
 
-class NodeDataStore extends DataStore {
+export class NodeDataStore extends DataStore {
   public readonly GAMES_PATH = join(envPaths('codegame', { suffix: '' }).data, 'games');
   /**
    * Creates a directory.
@@ -62,19 +68,46 @@ class NodeDataStore extends DataStore {
   }
 }
 
-/**
- * Creates a new CodeGame `Socket` for the Node.js environment.
+/** 
+ * Creates a new CodeGame `GameSocket` for the Node.js environment.
  * @param url The URL of the game server.
  * @param verbosity The level of verbosity when logging.
- * 
+ *
  * __Note:__ You may see the docs for this function in your editor, even if you are not using Node.js.
  * Just make sure that your bundler uses the `"browser"` version as defined in the `package.json`.
  */
-export const createSocket = <Events extends AnyEvent>(url: string, verbosity?: 'silent' | 'error' | 'info' | 'debug'): Socket<Events> => new Socket<Events>(
-  new NodeLogger(), new NodeDataStore(), fetch as any, WebSocket as any, url, verbosity
+export const createSocket = <Events extends AnyEvent>(
+  url: string,
+  verbosity?: Verbosity
+): GameSocket<Events> => new GameSocket<Events>(
+  new NodeLogger(),
+  new NodeDataStore(),
+  fetch as typeof window.fetch,
+  WebSocket as any,
+  url,
+  verbosity
 );
 
-export { Socket, EventListenerCallback, AnyEvent, EventListenerWrapper, EventWrapper, Session } from './socket.js';
+/**
+ * Creates a new CodeGame `DebugSocket` for the Browser environment.
+ * @param url The URL of the game server.
+ * @param verbosity The level of verbosity when logging.
+ */
+export const createDebugSocket = (
+  url: string,
+  verbosity?: Verbosity
+): DebugSocket => new DebugSocket(
+  new NodeLogger(),
+  new NodeDataStore(),
+  fetch as typeof window.fetch,
+  WebSocket as any,
+  url,
+  verbosity
+);
+
+// Re-export useful types
+export { Verbosity, Socket } from './socket.js';
+export { AnyCommand, AnyEvent, EventListenerCallback, Session, GameSocket } from './game-socket.js';
+export { Severity, DebugMessage, DebugListenerCallback, DebugSocket } from './debug-socket.js';
 export { Logger } from './logger.js';
 export { DataStore } from './data-store.js';
-export * as standardEvents from './standard-events.js';
