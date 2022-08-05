@@ -7,14 +7,14 @@ This is the JavaScript (and TypeScript) client library for [CodeGame](https://co
 ## Installation
 
 ```bash
-npm install @code-game-project/javascript-client
+npm install @code-game-project/client
 ```
 
 ## Usage
 
 ```javascript
 // import the `createSocket` function
-import { createSocket } from '@code-game-project/javascript-client';
+import { createSocket, Verbosity } from '@code-game-project/client';
 
 // Node.js only: Get the command line arguments (`node your-script.js cg.example.com joe 1234-5678`)
 let [host, username, gameId] = process.argv.slice(2)
@@ -26,7 +26,7 @@ const username = params.get('username');
 let gameId = params.get('game_id');
 
 // create a new `Socket` with the 'debug' logging level
-const socket = createSocket(url, 'debug');
+const socket = createSocket(url, Verbosity.DEBUG);
 
 // listen for some event
 socket.on('some_event', (data) => {
