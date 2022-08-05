@@ -95,13 +95,13 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * Saves the current session details.
    * @returns the session
    */
-  protected saveSession(url: string, username: string, gameId: string, playerId: string, playerSecret: string): Session {
+  protected saveSession(host: string, username: string, gameId: string, playerId: string, playerSecret: string): Session {
     this.session = {
       game_id: gameId,
       player_id: playerId,
       player_secret: playerSecret,
     };
-    this.dataStore.writeJSON<Session>([this.dataStore.GAMES_PATH, encodeURIComponent(url), username], this.session);
+    this.dataStore.writeJSON<Session>([this.dataStore.GAMES_PATH, encodeURIComponent(host), username], this.session);
     return this.session;
   }
 
@@ -112,7 +112,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * @chainable
    */
   public async restoreSession(username: string): Promise<this> {
-    const session = this.dataStore.readJSON<Session>([this.dataStore.GAMES_PATH, this.host, username]);
+    const session = this.dataStore.readJSON<Session>([this.dataStore.GAMES_PATH, encodeURIComponent(this.host), username]);
     if (!session) throw `Unable to restore session for game server "${this.host}" and username "${username}".`;
     this.session = session;
     await this.connect(this.session.game_id, this.session.player_id, this.session.player_secret);
