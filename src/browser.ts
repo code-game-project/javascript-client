@@ -1,8 +1,8 @@
-import { Verbosity } from './socket';
-import { AnyEvent, GameSocket } from './game-socket';
-import { DebugSocket } from './debug-socket';
-import { Logger } from './logger';
-import { DataStore } from './data-store';
+import { Verbosity } from './socket.js';
+import { AnyEvent, GameSocket } from './game-socket.js';
+import { DebugSocket } from './debug-socket.js';
+import { Logger } from './logger.js';
+import { DataStore } from './data-store.js';
 
 export class BrowserLogger extends Logger {
   public success(message: any, context?: any) {
@@ -86,8 +86,8 @@ export const createDebugSocket = (
 );
 
 // Re-export useful types
-export { Verbosity, Socket } from './socket';
-export { AnyCommand, AnyEvent, EventListenerCallback, Session, GameSocket } from './game-socket';
-export { Severity, DebugMessage, DebugListenerCallback, DebugSocket } from './debug-socket';
-export { Logger } from './logger';
-export { DataStore } from './data-store';
+export { Verbosity, Socket } from './socket.js';
+export { AnyCommand, AnyEvent, EventListenerCallback, Session, GameSocket } from './game-socket.js';
+export { Severity, DebugMessage, DebugListenerCallback, DebugSocket } from './debug-socket.js';
+export { Logger } from './logger.js';
+export { DataStore } from './data-store.js';
