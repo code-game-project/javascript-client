@@ -63,9 +63,9 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
   }
 
   /**
-   * Sends an event.
-   * @param name The name of the event to be sent.
-   * @param data Optional options to go along with your event.
+   * Sends a command.
+   * @param name The name of the command to be sent.
+   * @param data Optional options to go along with your command.
    */
   public send<Command extends Commands>(name: Command['name'], ...data: Command['data'] extends undefined ? [undefined?] : [Command['data']]): void {
     const zerothData = data[0];
@@ -78,7 +78,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
       } else if (this.verbosityReached(Verbosity.ERROR)) this.logger.error('There is currently no WebSocket connection established!');
     } catch (err) {
       if (this.verbosityReached(Verbosity.ERROR)) {
-        this.logger.error(`Unable to send event "${name}":`, err);
+        this.logger.error(`Unable to send command "${name}":`, err);
       }
     }
   }
