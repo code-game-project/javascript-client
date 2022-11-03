@@ -57,6 +57,31 @@ export async function createGame(
 }
 
 /**
+ * @route POST `/api/games/{game_id}`
+ * @returns `Promise` of possible API responses
+ */
+export async function getGameMetadata(
+  fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>,
+  path: { game_id: string; },
+  host: string
+): Promise<Res<{
+  id: string,
+  players: number,
+  config?: object;
+}>> {
+  try {
+    const r = await fetch(`${host}/api/games/${path.game_id}`);
+    try {
+      return { ok: r.ok, statusCode: r.status, data: await r.json() };
+    } catch (error) {
+      return { ok: r.ok, statusCode: r.status, error };
+    }
+  } catch (error) {
+    return { ok: false, networkError: true, error };
+  }
+}
+
+/**
  * @route POST `/api/games/{game_id}/players`
  * @returns `Promise` of possible API responses
  */

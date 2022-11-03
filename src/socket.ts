@@ -1,4 +1,4 @@
-import { getInfo, getPlayer } from './api.js';
+import { getInfo, getPlayer, getGameMetadata } from './api.js';
 import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
 import { trimURL } from './utils.js';
@@ -180,6 +180,29 @@ export class Socket {
 	public async getUsername(playerId: string): Promise<string | null> {
 		return this.usernameCache[playerId] || await this.fetchUsername(playerId);
 	};
+
+	/**
+	 * Gets the id, player count and configuration of the current game.
+	 * @returns the id, player count and config, if there is one
+	 */
+	public async fetchGameMetadata(): Promise<{
+		id: string;
+		players: number;
+		config?: object | undefined;
+	} | null> {
+		if (this.gameId) {
+			const res = await getGameMetadata(
+				this.fetch,
+				{ game_id: this.gameId },
+				await this.protocol('http') + this.host
+			);
+			if (res.data && 'config' in res.data) return res.data;
+			if (res.statusCode === 404 && this.verbosityReached(Verbosity.WARNING)) this.logger.warn(`Game ${this.gameId} does not exist.`);
+		} else if (this.verbosityReached(Verbosity.ERROR)) {
+			this.logger.error('Cannot get game metadata before connecting to a game.');
+		}
+		return null;
+	}
 
 	/**
 	 * Creates a new WebSocket connection to the game server.

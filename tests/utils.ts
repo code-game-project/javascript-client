@@ -2,7 +2,7 @@ import { trimURL } from '../dist/utils.js';
 
 // premium unit testing library
 let test = 0;
-function eq(output, target) {
+function eq(output: any, target: any) {
   test++;
   if (output === target) console.log(`test ${test}: ok`);
   else console.error(`test ${test}: failed\n  output: ${output}\n  target: ${target}`);

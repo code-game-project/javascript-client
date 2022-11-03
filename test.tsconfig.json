@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "outDir": "dist-tests",
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2022",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true
+  },
+  "compileOnSave": true,
+  "include": [
+    "tests"
+  ]
+}

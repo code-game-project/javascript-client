@@ -3,6 +3,7 @@ node_modules/
 
 # compiled js
 dist/
+dist-tests/
 
 # MacOS file manager layout
 .DS_Store
