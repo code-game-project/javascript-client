@@ -181,7 +181,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
       await this.makeWebSocketConnection(`/api/games/${gameId}/connect?player_id=${playerId}&player_secret=${playerSecret}`, this.messageHandler);
       return this;
     } else {
-      throw `Player with ID "${playerId}" does not exist on the specifited game server "${this.host}".`;
+      throw `Player with ID "${playerId}" does not exist on the specified game server "${this.host}".`;
     }
   };
 
