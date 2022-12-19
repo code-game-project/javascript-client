@@ -71,7 +71,7 @@ export class DebugSocket extends Socket {
    * @chainable
    */
   public async debugGame(gameId: string): Promise<this> {
-    this.gameId = gameId;
+    this.setGameId(gameId);
     await this.makeWebSocketConnection(`/api/games/${gameId}/debug`, this.messageHandler);
     return this;
   }
@@ -85,7 +85,7 @@ export class DebugSocket extends Socket {
    * @chainable
    */
   public async debugPlayer(gameId: string, playerId: string, playerSecret: string): Promise<this> {
-    this.gameId = gameId;
+    this.setGameId(gameId);
     await this.makeWebSocketConnection(`/api/games/${gameId}/players/${playerId}/debug?player_secret=${playerSecret}`, this.messageHandler);
     return this;
   }

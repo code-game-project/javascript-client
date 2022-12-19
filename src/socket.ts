@@ -1,4 +1,4 @@
-import { getInfo, getPlayer, getGameMetadata } from './api.js';
+import { getInfo, getPlayer, getGameMetadata, getPlayers } from './api.js';
 import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
 import { trimURL } from './utils.js';
@@ -56,7 +56,7 @@ export class Socket {
 	/** Event names mapped to event listeners. */
 	private listenerGroups: { [id: string]: Set<symbol>; } = {};
 	/** The game ID, seperate from the session in case there is none. */
-	protected gameId?: string;
+	private gameId?: string;
 	/** A map of player IDs and their corresponding usernames. */
 	private usernameCache: { [id: string]: string; } = {};
 
@@ -151,10 +151,32 @@ export class Socket {
 		else return protocol + '://';
 	};
 
+	protected setGameId(gameId: string) {
+		this.gameId = gameId;
+		this.fetchAllUsernames();
+	}
+
+	/**
+	 * Gets the usernames of all players in the current game from the server and caches them.
+	 */
+	protected async fetchAllUsernames(): Promise<void> {
+		if (this.gameId) {
+			const res = await getPlayers(
+				this.fetch,
+				{ game_id: this.gameId },
+				await this.protocol('http') + this.host
+			);
+			if (res.data) Object.assign(this.usernameCache, res.data);
+			if (res.networkError && this.verbosityReached(Verbosity.ERROR)) this.logger.error('A network error occurred while trying to connect to the server.');
+		} else if (this.verbosityReached(Verbosity.ERROR)) {
+			this.logger.error('Cannot get usernames before connecting to a game.');
+		}
+	}
+
 	/**
 	 * Gets the username of a player in the current game from the server.
 	 * @param playerId The player ID.
-	 * @returns the username or null if the username is unavailable
+	 * @returns the username or `null` if the username is unavailable
 	 */
 	protected async fetchUsername(playerId: string): Promise<string | null> {
 		if (this.gameId) {

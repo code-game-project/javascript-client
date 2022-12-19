@@ -131,7 +131,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
     const res = await createGame(this.fetch, await this.protocol('http') + this.host, { public: _public, protected: _protected, config });
     if (res.data && 'game_id' in res.data) {
       if (this.verbosityReached(Verbosity.INFO)) this.logger.info(`Created game with ID "${res.data.game_id}".`);
-      this.gameId = res.data.game_id;
+      this.setGameId(res.data.game_id);
       return { gameId: res.data.game_id, joinSecret: res.data.join_secret };
     }
     if (this.verbosityReached(Verbosity.ERROR)) this.logger.error('Unable to create a new game.');
@@ -150,7 +150,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * @chainable
    */
   public async join(gameId: string, username: string, join_secret?: string): Promise<this> {
-    this.gameId = gameId;
+    this.setGameId(gameId);
     const res = await createPlayer(this.fetch, { game_id: gameId }, await this.protocol('http') + this.host, { username, join_secret });
     if (res.data && 'player_id' in res.data && 'player_secret' in res.data) {
       const { game_id, player_id, player_secret } = this.saveSession(this.host, username, gameId, res.data.player_id, res.data.player_secret);
@@ -174,7 +174,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * @chainable
    */
   public async connect(gameId: string, playerId: string, playerSecret: string): Promise<this> {
-    this.gameId = gameId;
+    this.setGameId(gameId);
     const username = await this.getUsername(playerId);
     if (username) {
       this.saveSession(this.host, username, gameId, playerId, playerSecret);
@@ -192,7 +192,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * @chainable
    */
   public async spectate(gameId: string): Promise<this> {
-    this.gameId = gameId;
+    this.setGameId(gameId);
     await this.makeWebSocketConnection(`/api/games/${gameId}/spectate`, this.messageHandler);
     return this;
   }

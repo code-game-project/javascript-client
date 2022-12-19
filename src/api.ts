@@ -111,7 +111,7 @@ export async function createPlayer(
 }
 
 /**
- * @route GET `/api/games/{game_id}/player/{player_id}`
+ * @route GET `/api/games/{game_id}/players/{player_id}`
  * @returns `Promise` of possible API responses
  */
 export async function getPlayer(
@@ -121,6 +121,27 @@ export async function getPlayer(
 ): Promise<Res<{ username: string; } | undefined>> {
   try {
     const r = await fetch(`${host}/api/games/${path.game_id}/players/${path.player_id}`);
+    try {
+      return { ok: r.ok, statusCode: r.status, data: await r.json() };
+    } catch (error) {
+      return { ok: r.ok, statusCode: r.status, error };
+    }
+  } catch (error) {
+    return { ok: false, networkError: true, error };
+  }
+}
+
+/**
+ * @route GET `/api/games/{game_id}/players`
+ * @returns `Promise` of possible API responses
+ */
+export async function getPlayers(
+  fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>,
+  path: { game_id: string; },
+  host: string
+): Promise<Res<{ [index: string]: string; } | undefined>> {
+  try {
+    const r = await fetch(`${host}/api/games/${path.game_id}/players`);
     try {
       return { ok: r.ok, statusCode: r.status, data: await r.json() };
     } catch (error) {
