@@ -234,28 +234,44 @@ export class Socket {
 	 */
 	protected async makeWebSocketConnection(endpoint: string, messageHandler: (data: MessageEvent<any>) => void): Promise<void> {
 		return new Promise(async (resolve, reject) => {
-			if (this.socket) resolve();
-			else {
-				this.socket = new this.WebSocket_class(await this.protocol('ws') + this.host + endpoint) as WebSocket;
-				this.socket.addEventListener('error', (ev) => reject(ev), { once: true });
-				this.socket.addEventListener('open', () => {
-					if (this.verbosityReached(Verbosity.INFO)) this.logger.success(`WebSocket to ${this.host} opened.`);
-					this.socket?.addEventListener('error', (ev) => {
-						if (this.verbosityReached(Verbosity.ERROR)) {
-							this.logger.error('WebSocket "error" event:', ev);
-						}
-					});
-					this.socket?.addEventListener('close', () => {
-						if (this.verbosityReached(Verbosity.ERROR)) {
-							this.logger.error('WebSocket closed!');
-						}
-					});
-					this.socket?.addEventListener('message', messageHandler);
-					resolve();
-				});
+			if (this.socket) {
+				this.logger.info(`Closing previous WebSocket (${this.socket.url}) in preparation for opening a new one.`);
+				this.socket.close();
 			}
+			this.socket = new this.WebSocket_class(await this.protocol('ws') + this.host + endpoint) as WebSocket;
+			this.socket.addEventListener('error', (ev) => reject(ev), { once: true });
+			this.socket.addEventListener('open', () => {
+				if (this.verbosityReached(Verbosity.INFO)) this.logger.success(`WebSocket to ${this.host} opened.`);
+				this.socket?.addEventListener('error', (ev) => {
+					if (this.verbosityReached(Verbosity.ERROR)) {
+						this.logger.error('WebSocket "error" event:', ev);
+					}
+				});
+				this.socket?.addEventListener('close', () => {
+					if (this.verbosityReached(Verbosity.ERROR)) {
+						this.logger.warn('WebSocket closed!');
+					}
+				});
+				this.socket?.addEventListener('message', messageHandler);
+				resolve();
+			});
 		});
 	};
+
+	/**
+	 * Terminates the WebSocket connection.
+	 * 
+	 * The WebSocket connection can safely be reestablished at a later point.
+	 * All event listeners will stay registered but inactive.
+	 * 
+	 * Features like player name resolving and getting the socket session will
+	 * still work, while the socket is disconnected.
+	 */
+	public disconnect() {
+		this.socket?.close();
+		this.socket = undefined;
+		this.logger.success("Successfully closed the WebSocket connection.");
+	}
 
 	/**
 	 * Registers an event listener for a certain event.
