@@ -21,12 +21,12 @@ let [host, username, gameId] = process.argv.slice(2)
 
 // Browser only: Get the query parameters (`http://localhost:8080/?host=cg.example.com&username=joe&game_id=1234-5678`)
 const params = new URLSearchParams(window.location.search);
-const url = params.get('host');
+const host = params.get('host');
 const username = params.get('username');
 let gameId = params.get('game_id');
 
 // create a new `Socket` with the 'debug' logging level
-const socket = createSocket(url, Verbosity.DEBUG);
+const socket = createSocket(host, Verbosity.DEBUG);
 
 // listen for some event
 socket.on('some_event', (data) => {
