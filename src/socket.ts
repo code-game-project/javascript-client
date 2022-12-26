@@ -3,7 +3,7 @@ import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
 import { trimURL } from './utils.js';
 
-const CLIENT_CG_VERSION = [0, 7];
+const CG_VERSION = Object.freeze([0, 7]);
 
 /** Wraps a `Callback` and add the event's name and listener options. */
 interface EventListenerWrapper {
@@ -100,10 +100,10 @@ export class Socket {
 		const serverMajor = Number(serverVersionSplit[0]);
 		const serverMinor = Number(serverVersionSplit[1] || 0);
 		if (
-			serverMajor !== CLIENT_CG_VERSION[0] ||
-			serverMinor < CLIENT_CG_VERSION[1] ||
-			serverMajor === 0 && serverMinor !== CLIENT_CG_VERSION[1]
-		) this.logger.warn(`CodeGame version mismatch. Server: v${res.data.cg_version}, client: v${CLIENT_CG_VERSION.join('.')}`);
+			serverMajor !== CG_VERSION[0] ||
+			serverMinor < CG_VERSION[1] ||
+			serverMajor === 0 && serverMinor !== CG_VERSION[1]
+		) this.logger.warn(`CodeGame version mismatch. Server: v${res.data.cg_version}, client: v${CG_VERSION.join('.')}`);
 	}
 
 	/**
