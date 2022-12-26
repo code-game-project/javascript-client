@@ -1,5 +1,5 @@
 import { Verbosity } from './socket.js';
-import { AnyEvent, GameSocket } from './game-socket.js';
+import { type AnyCommand, type AnyEvent, GameSocket } from './game-socket.js';
 import { DebugSocket } from './debug-socket.js';
 import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
@@ -56,10 +56,10 @@ export class BrowserDataStore extends DataStore {
  * @param url The URL of the game server.
  * @param verbosity The level of verbosity when logging.
  */
-export const createSocket = <Events extends AnyEvent>(
+export const createSocket = <Commands extends AnyCommand, Events extends AnyEvent>(
   url: string,
   verbosity?: Verbosity
-): GameSocket<Events> => new GameSocket<Events>(
+): GameSocket<Events> => new GameSocket<Commands, Events>(
   new BrowserLogger(),
   new BrowserDataStore(),
   (input, init) => window.fetch(input, init),

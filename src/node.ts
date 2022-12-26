@@ -1,5 +1,5 @@
 import { Verbosity } from './socket.js';
-import { AnyEvent, GameSocket } from './game-socket.js';
+import { type AnyCommand, type AnyEvent, GameSocket } from './game-socket.js';
 import { DebugSocket } from './debug-socket.js';
 import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
@@ -76,10 +76,10 @@ export class NodeDataStore extends DataStore {
  * __Note:__ You may see the docs for this function in your editor, even if you are not using Node.js.
  * Just make sure that your bundler uses the `"browser"` version as defined in the `package.json`.
  */
-export const createSocket = <Events extends AnyEvent>(
+export const createSocket = <Commands extends AnyCommand, Events extends AnyEvent>(
   url: string,
   verbosity?: Verbosity
-): GameSocket<Events> => new GameSocket<Events>(
+): GameSocket<Events> => new GameSocket<Commands, Events>(
   new NodeLogger(),
   new NodeDataStore(),
   fetch as typeof window.fetch,
