@@ -17,13 +17,14 @@ npm install @code-game-project/client
 import { createSocket, Verbosity } from '@code-game-project/client';
 
 // Node.js only: Get the command line arguments (`node your-script.js cg.example.com joe 1234-5678`)
-let [host, username, gameId] = process.argv.slice(2)
+let [host, username, gameId, joinSecret] = process.argv.slice(2)
 
 // Browser only: Get the query parameters (`http://localhost:8080/?host=cg.example.com&username=joe&game_id=1234-5678`)
 const params = new URLSearchParams(window.location.search);
 const host = params.get('host');
 const username = params.get('username');
 let gameId = params.get('game_id');
+let joinSecret = params.get('join_secret');
 
 // create a new `Socket` with the 'debug' logging level
 const socket = createSocket(host, Verbosity.DEBUG);
@@ -43,7 +44,7 @@ socket.on('some_event', (data) => {
 		await socket.restoreSession(username);
 	} catch (err) {
 		// create a new public game if no game ID was specified
-		if (!gameId) gameId = await socket.create(true, true);
+		if (!gameId) ({ gameId, joinSecret } = (await socket.create(true, true)));
 		// join the game
 		await socket.join(gameId, username);
 	}
