@@ -18,7 +18,7 @@ export type DebugMessage = {
 /** Signature of a debug message listener function. */
 export type DebugListenerCallback = (message: string, data?: object) => void;
 
-export class DebugSocket extends Socket {
+export class DebugSocket<Config extends object = object> extends Socket<Config> {
   /** WebSocket message handler. */
   private readonly messageHandler = (data: MessageEvent<any>) => {
     try {

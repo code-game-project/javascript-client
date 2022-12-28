@@ -24,7 +24,7 @@ export interface Session {
 }
 
 /** A class that helps creating and connecting to games, as well as sending commands and receiving events. */
-export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends AnyEvent = AnyEvent> extends Socket {
+export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends AnyEvent = AnyEvent, Config extends object = object> extends Socket<Config> {
   /** The current player session. */
   private session?: Session;
   /** WebSocket message handler. */
@@ -127,7 +127,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * @returns the game ID.
    * @throws if something goes wrong during the create process
    */
-  public async create<Config extends object = object>(_public: boolean, _protected: boolean, config?: Config): Promise<{ gameId: string, joinSecret?: string; }> {
+  public async create(_public: boolean, _protected: boolean, config?: Partial<Config>): Promise<{ gameId: string, joinSecret?: string; }> {
     const res = await createGame(this.fetch, await this.protocol('http') + this.host, { public: _public, protected: _protected, config });
     if (res.data && 'game_id' in res.data) {
       if (this.verbosityReached(Verbosity.INFO)) this.logger.info(`Created game with ID "${res.data.game_id}".`);

@@ -76,10 +76,10 @@ export class NodeDataStore extends DataStore {
  * __Note:__ You may see the docs for this function in your editor, even if you are not using Node.js.
  * Just make sure that your bundler uses the `"browser"` version as defined in the `package.json`.
  */
-export const createSocket = <Commands extends AnyCommand, Events extends AnyEvent>(
+export const createSocket = <Commands extends AnyCommand, Events extends AnyEvent, Config extends object = object>(
   url: string,
   verbosity?: Verbosity
-): GameSocket<Events> => new GameSocket<Commands, Events>(
+) => new GameSocket<Commands, Events, Config>(
   new NodeLogger(),
   new NodeDataStore(),
   fetch as typeof window.fetch,
@@ -93,10 +93,10 @@ export const createSocket = <Commands extends AnyCommand, Events extends AnyEven
  * @param url The URL of the game server.
  * @param verbosity The level of verbosity when logging.
  */
-export const createDebugSocket = (
+export const createDebugSocket = <Config extends object = object>(
   url: string,
   verbosity?: Verbosity
-): DebugSocket => new DebugSocket(
+) => new DebugSocket<Config>(
   new NodeLogger(),
   new NodeDataStore(),
   fetch as typeof window.fetch,

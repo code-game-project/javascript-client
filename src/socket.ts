@@ -3,7 +3,7 @@ import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
 import { trimURL } from './utils.js';
 
-const CG_VERSION = Object.freeze([0, 7]);
+const CG_VERSION = Object.freeze([0, 8]);
 
 /** Wraps a `Callback` and add the event's name and listener options. */
 interface EventListenerWrapper {
@@ -34,7 +34,7 @@ export enum Verbosity {
  * username resolution and an easy way to obtain and
  * maintain a websocket connection.
  */
-export class Socket {
+export class Socket<Config> {
 	/** The correct `Logger` instance based on the environment. */
 	protected readonly logger: Logger;
 	/** The correct `DataStore` instance based on the environment. */
@@ -208,9 +208,10 @@ export class Socket {
 	 * @returns the id, player count and config, if there is one
 	 */
 	public async fetchGameMetadata(): Promise<{
-		id: string;
-		players: number;
-		config?: object | undefined;
+		id: string,
+		players: number,
+		protected: boolean,
+		config: Config,
 	} | null> {
 		if (this.gameId) {
 			const res = await getGameMetadata(
@@ -218,7 +219,7 @@ export class Socket {
 				{ game_id: this.gameId },
 				await this.protocol('http') + this.host
 			);
-			if (res.data && 'config' in res.data) return res.data;
+			if (res.data) return res.data as any;
 			if (res.statusCode === 404 && this.verbosityReached(Verbosity.WARNING)) this.logger.warn(`Game ${this.gameId} does not exist.`);
 		} else if (this.verbosityReached(Verbosity.ERROR)) {
 			this.logger.error('Cannot get game metadata before connecting to a game.');

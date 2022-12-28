@@ -56,10 +56,10 @@ export class BrowserDataStore extends DataStore {
  * @param url The URL of the game server.
  * @param verbosity The level of verbosity when logging.
  */
-export const createSocket = <Commands extends AnyCommand, Events extends AnyEvent>(
+export const createSocket = <Commands extends AnyCommand, Events extends AnyEvent, Config extends object = object>(
   url: string,
   verbosity?: Verbosity
-): GameSocket<Events> => new GameSocket<Commands, Events>(
+) => new GameSocket<Commands, Events, Config>(
   new BrowserLogger(),
   new BrowserDataStore(),
   (input, init) => window.fetch(input, init),
@@ -73,10 +73,10 @@ export const createSocket = <Commands extends AnyCommand, Events extends AnyEven
  * @param url The URL of the game server.
  * @param verbosity The level of verbosity when logging.
  */
-export const createDebugSocket = (
+export const createDebugSocket = <Config extends object = object>(
   url: string,
   verbosity?: Verbosity
-): DebugSocket => new DebugSocket(
+) => new DebugSocket<Config>(
   new BrowserLogger(),
   new BrowserDataStore(),
   (input, init) => window.fetch(input, init),
