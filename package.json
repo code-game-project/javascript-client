@@ -1,6 +1,6 @@
 {
   "name": "@code-game-project/client",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "JavaScript Client for CodeGame. It works in Node.js and most Browsers.",
   "license": "MIT",
   "author": {

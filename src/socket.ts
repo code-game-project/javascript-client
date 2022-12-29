@@ -136,7 +136,7 @@ export class Socket<Config> {
 				if (this.verbosityReached(Verbosity.ERROR)) {
 					this.logger.error('Unable to connect to the server using "http" or "https".');
 				}
-				throw err;
+				return false;
 			}
 		}
 	};
