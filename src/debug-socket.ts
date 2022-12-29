@@ -38,7 +38,7 @@ export class DebugSocket<Config extends object = object> extends Socket<Config> 
    * Registers a debug message listener for a certain severity.
    * @param severity Severity to listen for.
    * @param callback Function that is executed when a message with the specified severity is received.
-   * @returns the listener's ID
+   * @returns the listener's ID.
    */
   public on(severity: Severity, callback: DebugListenerCallback): symbol {
     return this.listen(severity, callback, false);
@@ -48,7 +48,7 @@ export class DebugSocket<Config extends object = object> extends Socket<Config> 
    * Registers a debug message listener for a certain severity that will self-destruct after being triggered once.
    * @param severity Severity to listen for.
    * @param callback Function that is executed when a message with the specified severity is received.
-   * @returns the listener's ID
+   * @returns the listener's ID.
    */
   public once(severity: Severity, callback: DebugListenerCallback): symbol {
     return this.listen(severity, callback, true);
@@ -56,7 +56,7 @@ export class DebugSocket<Config extends object = object> extends Socket<Config> 
 
   /**
    * Debug a server.
-   * @throws if the connection cannot be established
+   * @throws if the connection cannot be established.
    * @chainable
    */
   public async debugServer(): Promise<this> {
@@ -67,7 +67,7 @@ export class DebugSocket<Config extends object = object> extends Socket<Config> 
   /**
    * Debug a game.
    * @param gameId The ID of the game to debug.
-   * @throws if the connection cannot be established
+   * @throws if the connection cannot be established.
    * @chainable
    */
   public async debugGame(gameId: string): Promise<this> {
@@ -81,7 +81,7 @@ export class DebugSocket<Config extends object = object> extends Socket<Config> 
    * @param gameId The ID of the game to debug.
    * @param playerId The ID of the player to debug.
    * @param playerSecret The secret of the player to debug.
-   * @throws if the connection cannot be established
+   * @throws if the connection cannot be established.
    * @chainable
    */
   public async debugPlayer(gameId: string, playerId: string, playerSecret: string): Promise<this> {

@@ -46,7 +46,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * Registers an event listener for a certain event.
    * @param name Name of the event to listen for.
    * @param callback Function that is executed when the event is received.
-   * @returns the listener's ID
+   * @returns the listener's ID.
    */
   public on<Event extends Events>(name: Event['name'], callback: EventListenerCallback<Event>): symbol {
     return this.listen(name, callback, false);
@@ -56,7 +56,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * Registers an event listener for a certain event that will self-destruct after being triggered once.
    * @param name Name of the event to listen for.
    * @param callback Function that is executed when the event is received.
-   * @returns the listener's ID
+   * @returns the listener's ID.
    */
   public once<Event extends Events>(name: Event['name'], callback: EventListenerCallback<Event>): symbol {
     return this.listen(name, callback, true);
@@ -85,7 +85,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
 
   /**
    * Gets the current session details.
-   * @returns the session
+   * @returns the session.
    */
   public getSession(): Readonly<Session | undefined> {
     return this.session;
@@ -93,7 +93,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
 
   /**
    * Saves the current session details.
-   * @returns the session
+   * @returns the session.
    */
   protected saveSession(host: string, username: string, gameId: string, playerId: string, playerSecret: string): Session {
     this.session = {
@@ -101,18 +101,18 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
       player_id: playerId,
       player_secret: playerSecret,
     };
-    this.dataStore.writeJSON<Session>([this.dataStore.GAMES_PATH, encodeURIComponent(host), username], this.session);
+    this.dataStore.writeJSON<Session>([this.dataStore.GAMES_LOCATION, encodeURIComponent(host), username], this.session);
     return this.session;
   }
 
   /**
    * Tries to restore the session.
    * @param username The username that was used when the session was created.
-   * @throws if the session cannot be restored
+   * @throws if the session cannot be restored.
    * @chainable
    */
   public async restoreSession(username: string): Promise<this> {
-    const session = this.dataStore.readJSON<Session>([this.dataStore.GAMES_PATH, encodeURIComponent(this.host), username]);
+    const session = this.dataStore.readJSON<Session>([this.dataStore.GAMES_LOCATION, encodeURIComponent(this.host), username]);
     if (!session) throw `Unable to restore session for game server "${this.host}" and username "${username}".`;
     this.session = session;
     await this.connect(this.session.game_id, this.session.player_id, this.session.player_secret);
@@ -125,7 +125,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * @param _protected Whether the game should require an additional secret to join.
    * @param config Game-specific configuration options.
    * @returns the game ID.
-   * @throws if something goes wrong during the create process
+   * @throws if something goes wrong during the create process.
    */
   public async create(_public: boolean, _protected: boolean, config?: Partial<Config>): Promise<{ gameId: string, joinSecret?: string; }> {
     const res = await createGame(this.fetch, await this.protocol('http') + this.host, { public: _public, protected: _protected, config });
@@ -146,7 +146,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * @param gameId The ID of the game to join.
    * @param username The username to join with.
    * @param join_secret An additional secret required to join protected games.
-   * @throws if something goes wrong during the join process
+   * @throws if something goes wrong during the join process.
    * @chainable
    */
   public async join(gameId: string, username: string, join_secret?: string): Promise<this> {
@@ -170,7 +170,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * @param gameId The ID of the game to connect to.
    * @param playerId The ID of the player to connect to.
    * @param playerSecret The secret of the player.
-   * @throws if something goes wrong during the connect process
+   * @throws if something goes wrong during the connect process.
    * @chainable
    */
   public async connect(gameId: string, playerId: string, playerSecret: string): Promise<this> {
@@ -188,7 +188,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
   /**
    * Join a game as a spectator.
    * @param gameId The ID of the game to spectate.
-   * @throws if the connection cannot be established
+   * @throws if the connection cannot be established.
    * @chainable
    */
   public async spectate(gameId: string): Promise<this> {

@@ -24,30 +24,31 @@ export class BrowserLogger extends Logger {
 }
 
 export class BrowserDataStore extends DataStore {
-  public readonly GAMES_PATH = 'codegame';
+  public readonly GAMES_LOCATION = 'codegame';
   /**
-   * Reads from localStorage
-   * @param path localStorage key
+   * Reads JSON data from `LocalStorage`.
+   * @param key The `LocalStorage` key.
+   * @returns an object.
    */
-  public readJSON<T extends object>(path: string[]): T | null {
-    const value = window.localStorage.getItem(path.join('.'));
+  public readJSON<T extends object>(key: string[]): T | null {
+    const value = window.localStorage.getItem(key.join('.'));
     if (!value) return null;
     else return JSON.parse(value);
   }
   /**
-   * Writes to localStorage.
-   * @param path localStorage key
-   * @param data data to write
+   * Saves JSON data to `LocalStorage`.
+   * @param key The `LocalStorage` key.
+   * @param data The data.
    */
-  public writeJSON(path: string[], data: object): void {
-    window.localStorage.setItem(path.join('.'), JSON.stringify(data));
+  public writeJSON(key: string[], data: object): void {
+    window.localStorage.setItem(key.join('.'), JSON.stringify(data));
   }
   /**
-   * Deletes a file or localStorage data.
-   * @param path file or localStorage path
+   * Deletes something from `LocalStorage`.
+   * @param key The `LocalStorage` key.
    */
-  public _delete(path: string[]): void {
-    window.localStorage.removeItem(path.join('.'));
+  public _delete(key: string[]): void {
+    window.localStorage.removeItem(key.join('.'));
   }
 }
 

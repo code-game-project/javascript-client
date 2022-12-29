@@ -15,6 +15,13 @@ interface EventListenerWrapper {
 	once?: boolean;
 }
 
+/** The details needed to remove a listener that was registered using `object.addEventListener()`. */
+interface RawListenerDeletionPackage {
+	event: string,
+	listener: (ev: any) => any,
+	options: any,
+}
+
 /** Logging levels for the Socket. */
 export enum Verbosity {
 	/** Don't log __anything__. Even exceptions in the library will be suppressed. */
@@ -54,7 +61,9 @@ export class Socket<Config> {
 	/** Event listeners for events. */
 	private listeners: { [id: symbol]: EventListenerWrapper; } = {};
 	/** Event names mapped to event listeners. */
-	private listenerGroups: { [id: string]: Set<symbol>; } = {};
+	private listenerGroups: { [event: string]: Set<symbol>; } = {};
+	/** Raw listeners tied to `this.socket`. */
+	private rawListeners: { [id: symbol]: RawListenerDeletionPackage; } = {};
 	/** The game ID, seperate from the session in case there is none. */
 	private gameId?: string;
 	/** A map of player IDs and their corresponding usernames. */
@@ -109,7 +118,7 @@ export class Socket<Config> {
 	/**
 	 * Checks if the verbosity level is high enough
 	 * @param required The required verbosity level.
-	 * @returns `true` if the current verbosity level is equal or greater to the required verbosity level
+	 * @returns `true` if the current verbosity level is equal or greater to the required verbosity level.
 	 */
 	protected verbosityReached(required: Verbosity): boolean {
 		if (this.verbosity === Verbosity.SILENT) return false;
@@ -144,7 +153,7 @@ export class Socket<Config> {
 	/**
 	 * Returns the correct protocol based on `this.tls`.
 	 * @param protocol The base protocol (for example `http` or `ws`).
-	 * @returns the protocol followed by `://`
+	 * @returns the protocol followed by `://`.
 	 */
 	protected async protocol(protocol: string): Promise<string> {
 		if (await this.tlsAvailable()) return protocol + 's://';
@@ -176,7 +185,7 @@ export class Socket<Config> {
 	/**
 	 * Gets the username of a player in the current game from the server.
 	 * @param playerId The player ID.
-	 * @returns the username or `null` if the username is unavailable
+	 * @returns the username or `null` if the username is unavailable.
 	 */
 	protected async fetchUsername(playerId: string): Promise<string | null> {
 		if (this.gameId) {
@@ -197,7 +206,7 @@ export class Socket<Config> {
 	/**
 	 * Gets a username by player ID.
 	 * @param playerId The player ID.
-	 * @returns the username or null if the username is unavailable
+	 * @returns the username or null if the username is unavailable.
 	 */
 	public async getUsername(playerId: string): Promise<string | null> {
 		return this.usernameCache[playerId] || await this.fetchUsername(playerId);
@@ -205,7 +214,7 @@ export class Socket<Config> {
 
 	/**
 	 * Gets the id, player count and configuration of the current game.
-	 * @returns the id, player count and config, if there is one
+	 * @returns the id, player count and config, if there is one.
 	 */
 	public async fetchGameMetadata(): Promise<{
 		id: string,
@@ -231,7 +240,7 @@ export class Socket<Config> {
 	 * Creates a new WebSocket connection to the game server.
 	 * @param endpoint The path to a WebSocket endpoint.
 	 * @param messageHandler A function to handle the 'message' event.
-	 * @throws if an error occurs that cannot be handled
+	 * @throws if an error occurs that cannot be handled.
 	 */
 	protected async makeWebSocketConnection(endpoint: string, messageHandler: (data: MessageEvent<any>) => void): Promise<void> {
 		return new Promise(async (resolve, reject) => {
@@ -271,7 +280,39 @@ export class Socket<Config> {
 	public disconnect() {
 		this.socket?.close();
 		this.socket = undefined;
-		this.logger.success("Successfully closed the WebSocket connection.");
+		this.logger.success('Successfully closed the WebSocket connection.');
+	}
+
+	/**
+	 * Registers an event listener directly on the underlying `WebSocket` object.
+	 * 
+	 * __Note:__ Event listeners registered using this method will automatically unregister when the websocket is reconnected.
+	 * @param event The name of the `WebSocket` event.
+	 * @param listener A Function that is executed when the event is received.
+	 * @param options Standard event listener options.
+	 * @returns the listener's ID.
+	 */
+	public addRawListener<K extends keyof WebSocketEventMap>(event: K, listener: (ev: WebSocketEventMap[K]) => any, options?: boolean | AddEventListenerOptions | undefined): symbol {
+		const id = Symbol(event);
+		const listenerWrapper = (ev: WebSocketEventMap[K]) => listener(ev);
+		this.rawListeners[id] = { event, listener: listenerWrapper, options };
+		this.socket?.addEventListener(event, listenerWrapper, options);
+		return id;
+	}
+
+	/**
+	 * Removes a raw listener by its ID.
+	 * @param id The listener's ID.
+	 * @returns if there was a listener with the specified ID.
+	 */
+	public removeRawListener(id: symbol): boolean {
+		if (this.rawListeners[id]) {
+			const { event, listener, options } = this.rawListeners[id];
+			this.socket?.removeEventListener(event, listener, options);
+			delete this.rawListeners[id];
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -279,10 +320,10 @@ export class Socket<Config> {
 	 * @param name Name of the event to listen for.
 	 * @param callback Function that is executed when event is received.
 	 * @param once Whether the listener should self-destruct after being triggered once.
-	 * @returns the listener's ID
+	 * @returns the listener's ID.
 	 */
 	protected listen(name: string, callback: Function, once: boolean): symbol {
-		const id = Symbol();
+		const id = Symbol(name);
 		if (!this.listenerGroups[name]) this.listenerGroups[name] = new Set();
 		this.listenerGroups[name].add(id);
 		this.listeners[id] = ({ name, callback, once });
@@ -290,12 +331,17 @@ export class Socket<Config> {
 	}
 
 	/**
-	 * Removes an event listener by ID.
-	 * @param id The listner's ID.
+	 * Removes an event listener by its ID.
+	 * @param id The listener's ID.
+	 * @returns if there was a listener with the specified ID.
 	 */
-	public removeListener(id: symbol): void {
-		this.listenerGroups[this.listeners[id].name].delete(id);
-		delete this.listeners[id];
+	public removeListener(id: symbol): boolean {
+		if (this.listeners[id]) {
+			this.listenerGroups[this.listeners[id].name].delete(id);
+			delete this.listeners[id];
+			return true;
+		}
+		return false;
 	};
 
 	/**

@@ -30,10 +30,10 @@ export class NodeLogger extends Logger {
 }
 
 export class NodeDataStore extends DataStore {
-  public readonly GAMES_PATH = join(envPaths('codegame', { suffix: '' }).data, 'games');
+  public readonly GAMES_LOCATION = join(envPaths('codegame', { suffix: '' }).data, 'games');
   /**
    * Creates a directory.
-   * @param path file path
+   * @param path The file path.
    */
   private mkdir(path: string[]): void {
     let currentPath = "";
@@ -44,16 +44,17 @@ export class NodeDataStore extends DataStore {
     }
   }
   /**
-   * Reads from a file.
-   * @param path file path
+   * Reads JSON data from a file.
+   * @param path The file path.
+   * @returns an object.
    */
   public readJSON<T extends object>(path: string[]): T | null {
     return existsSync(join(...path)) ? JSON.parse(readFileSync(join(...path), { encoding: 'utf-8' })) : null;
   }
   /**
-   * Writes to a file.
-   * @param path file path
-   * @param data data to write
+   * Writes JSON data to a file.
+   * @param path The file path.
+   * @param data The data.
    */
   public writeJSON(path: string[], data: object): void {
     this.mkdir(path.length <= 1 ? path : path.slice(0, path.length - 1));
@@ -61,7 +62,7 @@ export class NodeDataStore extends DataStore {
   }
   /**
    * Deletes a file.
-   * @param path file path
+   * @param path The file path.
    */
   public _delete(path: string[]): void {
     unlinkSync(join(...path));
