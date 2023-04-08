@@ -178,7 +178,7 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
     const username = await this.getUsername(playerId);
     if (username) {
       this.saveSession(this.host, username, gameId, playerId, playerSecret);
-      await this.makeWebSocketConnection(`/api/games/${gameId}/players/${playerId}/connect?player_secret=${playerSecret}`, this.messageHandler);
+      await this.makeWebSocketConnection(`/api/games/${gameId}/connect?player_id=${playerId}&player_secret=${playerSecret}`, this.messageHandler);
       return this;
     } else {
       throw `Player with ID "${playerId}" does not exist on the specified game server "${this.host}".`;

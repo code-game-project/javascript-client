@@ -67,7 +67,6 @@ export async function getGameMetadata(
 ): Promise<Res<{
   id: string,
   players: number,
-  protected: boolean,
   config?: object;
 }>> {
   try {

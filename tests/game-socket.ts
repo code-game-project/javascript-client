@@ -7,7 +7,7 @@ type Config = { reallySpecificProperty: string; };
 // create and join
 const socket = createSocket<Commands, Events, Config>('localhost:8080', Verbosity.INFO);
 const { gameId, joinSecret } = await socket.create(true, true);
-await socket.join(gameId, 'test', joinSecret);
+await socket.join(gameId, 'tester', joinSecret);
 
 // available data
 console.log('[available data] This will be `null` if joining fails, else it will be a JSON object:', (await socket.fetchGameMetadata()));

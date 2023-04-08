@@ -3,7 +3,7 @@ import { Logger } from './logger.js';
 import { DataStore } from './data-store.js';
 import { trimURL } from './utils.js';
 
-const CG_VERSION = Object.freeze([0, 8]);
+const CG_VERSION = Object.freeze([0, 7]);
 
 /** Wraps a `Callback` and add the event's name and listener options. */
 interface EventListenerWrapper {

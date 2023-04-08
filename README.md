@@ -1,6 +1,6 @@
 # JavaScript-Client
 
-![CodeGame Specification Version](https://img.shields.io/badge/CodeGame_Specification-v0.8-orange)
+![CodeGame Specification Version](https://img.shields.io/badge/CodeGame_Specification-v0.7-orange)
 
 This is the JavaScript (and TypeScript) client library for [CodeGame](https://code-game.org/).
 
