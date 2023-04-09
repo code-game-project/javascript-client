@@ -145,13 +145,13 @@ export class GameSocket<Commands extends AnyCommand = AnyCommand, Events extends
    * Joins an existing game.
    * @param gameId The ID of the game to join.
    * @param username The username to join with.
-   * @param join_secret An additional secret required to join protected games.
+   * @param joinSecret An additional secret required to join protected games.
    * @throws if something goes wrong during the join process.
    * @chainable
    */
-  public async join(gameId: string, username: string, join_secret?: string): Promise<this> {
+  public async join(gameId: string, username: string, joinSecret?: string): Promise<this> {
     this.setGameId(gameId);
-    const res = await createPlayer(this.fetch, { game_id: gameId }, await this.protocol('http') + this.host, { username, join_secret });
+    const res = await createPlayer(this.fetch, { game_id: gameId }, await this.protocol('http') + this.host, { username, join_secret: joinSecret });
     if (res.data && 'player_id' in res.data && 'player_secret' in res.data) {
       const { game_id, player_id, player_secret } = this.saveSession(this.host, username, gameId, res.data.player_id, res.data.player_secret);
       await this.connect(game_id, player_id, player_secret);

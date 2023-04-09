@@ -112,3 +112,4 @@ export { AnyCommand, AnyEvent, EventListenerCallback, Session, GameSocket } from
 export { Severity, DebugMessage, DebugListenerCallback, DebugSocket } from './debug-socket.js';
 export { Logger } from './logger.js';
 export { DataStore } from './data-store.js';
+export * as api from './api.js';

@@ -2,7 +2,7 @@
 export interface Res<Data> { ok: boolean, statusCode?: number, data?: Data, networkError?: boolean, error?: unknown, text?: string; };
 
 /**
- * @route POST `/api/info`
+ * @route GET `/api/info`
  * @returns `Promise` of possible API responses
  */
 export async function getInfo(
@@ -11,13 +11,50 @@ export async function getInfo(
 ): Promise<Res<{
   name: string,
   cg_version: string,
-  display_name?: string,
-  description?: string,
-  version?: string,
-  repository_url?: string;
+  display_name: string,
+  description: string,
+  version: string,
+  repository_url: string;
 }>> {
   try {
-    const r = await fetch(`${host}/api/info`);
+    const r = await fetch(`${host}/api/info`, { method: "GET" });
+    try {
+      return { ok: r.ok, statusCode: r.status, data: await r.json() };
+    } catch (error) {
+      return { ok: r.ok, statusCode: r.status, error };
+    }
+  } catch (error) {
+    return { ok: false, networkError: true, error };
+  }
+}
+
+/**
+ * @route GET `/api/events`
+ * @returns `Promise` of possible API responses
+ */
+export async function getEvents(fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>, host: string): Promise<Res<string>> {
+  try {
+    const r = await fetch(`${host}/api/events`, { method: "GET" });
+    try {
+      return { ok: r.ok, statusCode: r.status, data: await r.text() };
+    } catch (error) {
+      return { ok: r.ok, statusCode: r.status, error };
+    }
+  } catch (error) {
+    return { ok: false, networkError: true, error };
+  }
+}
+
+/**
+ * @route GET `/api/games`
+ * @returns `Promise` of possible API responses
+ */
+export async function getGames(
+  fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>,
+  host: string
+): Promise<Res<{ private: number, public: { id: string, players: number, protected: boolean; }[]; }>> {
+  try {
+    const r = await fetch(`${host}/api/games`, { method: "GET" });
     try {
       return { ok: r.ok, statusCode: r.status, data: await r.json() };
     } catch (error) {
@@ -57,20 +94,37 @@ export async function createGame(
 }
 
 /**
- * @route POST `/api/games/{game_id}`
+ * @route GET `/api/games/{game_id}`
  * @returns `Promise` of possible API responses
  */
 export async function getGameMetadata(
   fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>,
   path: { game_id: string; },
   host: string
-): Promise<Res<{
-  id: string,
-  players: number,
-  config?: object;
-}>> {
+): Promise<Res<{ id: string, players: number, protected: boolean, config: {}; } | undefined>> {
   try {
-    const r = await fetch(`${host}/api/games/${path.game_id}`);
+    const r = await fetch(`${host}/api/games/${path.game_id}`, { method: "GET" });
+    try {
+      return { ok: r.ok, statusCode: r.status, data: await r.json() };
+    } catch (error) {
+      return { ok: r.ok, statusCode: r.status, error };
+    }
+  } catch (error) {
+    return { ok: false, networkError: true, error };
+  }
+}
+
+/**
+ * @route GET `/api/games/{game_id}/players`
+ * @returns `Promise` of possible API responses
+ */
+export async function getPlayers(
+  fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>,
+  path: { game_id: string; },
+  host: string
+): Promise<Res<{ players: {}; } | undefined>> {
+  try {
+    const r = await fetch(`${host}/api/games/${path.game_id}/players`, { method: "GET" });
     try {
       return { ok: r.ok, statusCode: r.status, data: await r.json() };
     } catch (error) {
@@ -101,9 +155,9 @@ export async function createPlayer(
       }
     );
     try {
-      return { ok: r.ok, statusCode: r.status, data: await r.clone().json() };
+      return { ok: r.ok, statusCode: r.status, data: await r.json() };
     } catch (error) {
-      return { ok: r.ok, statusCode: r.status, error, text: await r.text().catch(() => undefined) };
+      return { ok: r.ok, statusCode: r.status, error };
     }
   } catch (error) {
     return { ok: false, networkError: true, error };
@@ -120,28 +174,10 @@ export async function getPlayer(
   host: string
 ): Promise<Res<{ username: string; } | undefined>> {
   try {
-    const r = await fetch(`${host}/api/games/${path.game_id}/players/${path.player_id}`);
-    try {
-      return { ok: r.ok, statusCode: r.status, data: await r.json() };
-    } catch (error) {
-      return { ok: r.ok, statusCode: r.status, error };
-    }
-  } catch (error) {
-    return { ok: false, networkError: true, error };
-  }
-}
-
-/**
- * @route GET `/api/games/{game_id}/players`
- * @returns `Promise` of possible API responses
- */
-export async function getPlayers(
-  fetch: (input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>,
-  path: { game_id: string; },
-  host: string
-): Promise<Res<{ [index: string]: string; } | undefined>> {
-  try {
-    const r = await fetch(`${host}/api/games/${path.game_id}/players`);
+    const r = await fetch(
+      `${host}/api/games/${path.game_id}/players/${path.player_id}`,
+      { method: "GET" }
+    );
     try {
       return { ok: r.ok, statusCode: r.status, data: await r.json() };
     } catch (error) {
