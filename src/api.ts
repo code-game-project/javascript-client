@@ -11,10 +11,10 @@ export async function getInfo(
 ): Promise<Res<{
   name: string,
   cg_version: string,
-  display_name: string,
-  description: string,
-  version: string,
-  repository_url: string;
+  display_name?: string,
+  description?: string,
+  version?: string,
+  repository_url?: string;
 }>> {
   try {
     const r = await fetch(`${host}/api/info`, { method: "GET" });
